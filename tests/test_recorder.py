@@ -82,6 +82,22 @@ from roto_brush.controller import Controller  # noqa: E402
 REF = ROOT / "assets" / "Krea2_turbo_style_reference_00001_EFFECTCRAFT.png"
 
 
+class FakeDoc:
+    """Documento como el de Krita 6: name/width/height, SIN url()."""
+
+    def name(self):
+        return "Krea2_turbo_style_reference_00001_.png"
+
+    def width(self):
+        return 1024
+
+    def height(self):
+        return 1024
+
+
+Controller.document = property(lambda self: FakeDoc())
+
+
 def stroke_points(w, h):
     """Tres trazos verticales por zonas del personaje (según el alfa de ref)."""
     a = np.array(Image.open(REF).convert("RGBA"))[:, :, 3] > 127
@@ -136,6 +152,8 @@ def main() -> int:
     assert (SESSION / "layer.bgra").stat().st_size == w * h * 4
     meta = json.loads((SESSION / "meta.json").read_text(encoding="utf-8"))
     assert meta["rect"] == [0, 0, w, h], meta.get("rect")
+    assert meta.get("document") == "Krea2_turbo_style_reference_00001_.png", meta
+    assert meta.get("width") == 1024 and "url" not in meta, meta
     print(f"OK sesión sintética en {SESSION} ({total_pts} puntos, 3 trazos)")
     print("Ahora:  .engine/venv/bin/python tests/replay_recording.py")
     return 0

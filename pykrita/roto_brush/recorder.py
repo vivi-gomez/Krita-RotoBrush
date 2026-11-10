@@ -83,15 +83,13 @@ class Recorder:
                 "sesion-%Y%m%d-%H%M%S"
             )
             d = root / name
-            d.mkdir()
+            d.mkdir(exist_ok=True)
             self.dir = d
             self.meta = {"ts": time.strftime("%Y-%m-%d %H:%M:%S")}
-            doc = c.document
-            if doc is not None:
-                self.meta.update(
-                    {"document": doc.name(), "url": doc.url(),
-                     "width": doc.width(), "height": doc.height()}
-                )
+            try:
+                self.meta.update(self._doc_info(c.document))
+            except Exception as e:  # noqa: BLE001
+                log.error(f"recorder doc: {e!r}")
             self.meta["engine_kind"] = getattr(c, "engine_kind", "sam2")
             self.meta["edge_smooth"] = c.edge_smooth
             self.meta["brush"] = c.brush
@@ -100,6 +98,31 @@ class Recorder:
         except Exception as e:  # noqa: BLE001
             log.error(f"recorder begin: {e!r}")
             self.dir = None
+
+    @staticmethod
+    def _doc_info(doc) -> dict:
+        """Todo lo que la API de Krita permita preguntar por el documento."""
+        info = {}
+        if doc is None:
+            return info
+        for key, names in (
+            ("document", ("name",)),
+            ("url", ("filePath", "filepath", "fileName")),
+        ):
+            for attr in names:
+                try:
+                    value = getattr(doc, attr)()
+                except Exception:  # noqa: BLE001
+                    continue
+                if value:
+                    info[key] = value
+                    break
+        for key, attr in (("width", "width"), ("height", "height")):
+            try:
+                info[key] = getattr(doc, attr)()
+            except Exception:  # noqa: BLE001
+                pass
+        return info
 
     def layer_info(self, c) -> None:
         """Datos de la capa activa (nombre, id, rec) en meta."""
