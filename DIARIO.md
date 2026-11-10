@@ -854,3 +854,58 @@ rojos; ya se verá al analizarlo).
 **Pendiente**: prueba real del usuario (reinstalar con `scripts/install.sh`
 primero); análisis de los vídeos de referencia para el comportamiento de los
 trazos rojos; herramienta del toolbox y undo nativo.
+
+## Sesión 6: feedback del usuario con la v0.4 (pausamos aquí)
+
+Pruebas reales del usuario (11:12–11:16) sobre la imagen de la chica
+`assets/vu87_QWEN21_v2_e000030_01_20261029142437_1235.png` (1024x1024) y el
+yeti EFFECTCRAFT, con capturas de pantalla de tres máscaras. Sesiones
+grabadas: `sesion-20261110-111218` (yeti: 1 verde, 2 refine, 2 rojos, seis
+máscaras sam2 siempre al 47,1 %), `sesion-20261110-111430` (chica: 2 verdes,
+sam2 27,9 % → mobile 27,3 %) y `sesion-20261110-111429` **vacía** (la captura
+se activó tarde y no quedó ni un trazo: el recorder volvió a fallar).
+
+### Queja 1 — SAM 2.1 da borde de peor calidad que MobileSAM (imagen chica)
+
+MobileSAM: silueta fina con el vello del borde conservado, mano limpia.
+SAM 2.1: borde grueso y a escalones, vello segado, mano fusionada; el círculo
+central es el cursor, no contaminación.
+
+- Causa probable: el decodificador de SAM produce el mask logit a
+  resolución 1/4 y lo reescala (borde en bloques); el decoder de MobileSAM
+  conserva mejor el borde en este estilo de dibujo.
+- Nuestra dilatación de 1 px (v0.4) empeora visualmente el grosor extra en
+  imágenes donde SAM ya de por sí pasa gordo.
+- Idea (v0.5): no dilatar a ciegas; refinar el borde con la propia imagen
+  como guía (guided filter / CRF), o mezclar: semántica de SAM 2.1 + borde
+  de MobileSAM (las dos máscaras ya se calculan baratas). Medir IoU en el
+  arnés antes de decidirse.
+
+### Queja 2 — Refine contamina el fondo con SAM 2.1
+
+La máscara «sam2.1 + refiner» es una mancha enorme con puntos sueltos por el
+fondo. En SAM 2.1 los trazos Refine entran como puntos verdes con el
+contexto completo: SAM segmenta otro candidato y la unión pega la basura.
+
+- Idea (v0.5): Refine debe refinar SOLO cerca del trazo: segimentar y
+  intersectar con el vecindario barrido (radio pincel × k); nada de contexto
+  global para estos trazos.
+
+### Queja 3 — El rojo (Fondo) no quita lo que Refine ensució
+
+El borrado local de la v0.4 quita una banda de ~32 px alrededor del trazo;
+los puntos aislados y las manchas lejos del barrido quedan intactos (en la
+sesión del yeti el primer plano no bajó del 47,1 % ni con dos rojos largos).
+
+- Idea (v0.5): semántica de cubo/gota: si el rojo toca una componente
+  conexa de la máscara, se va la componente ENTERA; los puntos sueltos
+  pequeños deberían irse además solos (limpiar componentes < umbral).
+
+### Pendiente para cuando retome el proyecto
+
+1. Queja 2 y 3 juntas (refine local + rojo por componente conexa).
+2. Queja 1 (borde: guided filter o fusión con MobileSAM; replantear la
+   dilatación fija de 1 px).
+3. Bug del recorder: la sesión de la chica con refiner (11:14) quedó vacía.
+4. Revisar los vídeos de EffectCraft para el comportamiento esperado de
+   Refine y Fondo.
