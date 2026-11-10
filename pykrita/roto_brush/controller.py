@@ -8,6 +8,7 @@ from pathlib import Path
 from krita import Krita
 
 from . import canvas, log
+from .recorder import Recorder
 from .engine import FG, REFINE, REFINE_ERASE, Engine
 from .overlay import Overlay
 from .compute import ComputeOps
@@ -57,6 +58,7 @@ class Controller(StrokeEdits, ComputeOps, Diagnostics, QObject):
         self.selected = None
         self.view_mask = False
         self.capture = canvas.Capture(self)
+        self.recorder = Recorder()
         self.overlay = None
         self.source = None  # (node_id, rect, rgba original)
         self._doc_key = None
@@ -115,6 +117,7 @@ class Controller(StrokeEdits, ComputeOps, Diagnostics, QObject):
     def set_capture(self, on: bool) -> bool:
         if not on:
             self._timer.stop()
+            self.recorder.note("captura desactivada")
             self.capture.stop()
             self._drop_overlay()
             self._restore_tool()
@@ -124,6 +127,7 @@ class Controller(StrokeEdits, ComputeOps, Diagnostics, QObject):
         self._sync_document()
         if not self.capture.start():
             return False
+        self.recorder.begin(self)
         self._neutral_tool()
         self._make_overlay()
         self._install_undo_shortcut()

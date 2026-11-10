@@ -48,3 +48,6 @@ tests/results/*.png
 
 # Modelos descargados
 .engine/models/
+
+# Grabaciones de trazos del usuario (contienen imágenes)
+tests/recordings/

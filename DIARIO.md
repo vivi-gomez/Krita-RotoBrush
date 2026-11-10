@@ -778,3 +778,45 @@ aplicado con el personaje completo (ver `tests/results/applytest2.png`).
 **Valoración honesta**: el recorte es bueno para un uso real (objeto completo con
 3 trazos cortos). Quedan motas diminutas junto a los pies si el trazo no los
 cubre, y las zonas de pelo muy difuso aún pueden requerir Refine.
+
+## 2026-11-10 — Sesión 4: registro de trazos del usuario (v0.3-alpha)
+
+**Objetivo**: el usuario pinta trazos reales en Krita y el plugin los guarda
+para que el desarrollo pueda reproducirlos y probarlos sin Krita.
+
+**Hecho**
+
+- Copia de seguridad de la versión anterior: etiqueta `v0.2-alpha-sam2` y
+  `../Krita-RotoBrush-BACKUP-v0.2-alpha-sam2-20261110-090116.tar.gz`.
+- Nuevo `recorder.py`: al activar la herramienta crea
+  `tests/recordings/sesion-AAAAMMDD-HHMMSS/` con `meta.json` (documento,
+  rect de la capa, ajustes), `strokes.jsonl` (lista COMPLETA de trazos tras
+  cada trazo + % de cada máscara) y `layer.bgra` (píxeles originales).
+  Activo con el marcador `~/.local/share/krita/roto_brush_record`; cualquier
+  fallo del registro se ignora sin romper la herramienta.
+- Arnés `tests/replay_recording.py`: carga la última grabación, arranca el
+  worker SAM 2.1 si hace falta y resegmenta con prefijos 1..N trazos; guarda
+  máscaras, vistas sombreadas e **IoU con la referencia de EffectCraft**.
+- `tests/test_recorder.py`: sesión sintética (yeti EFFECTCRAFT, 3 trazos
+  cabeza/cuerpo/pies) usada para validar el arnés.
+
+**Descubierto con la sesión sintética** (ya reproduce la queja del usuario):
+
+| trazos | primer plano | IoU ref |
+|---|---|---|
+| 1 (cabeza) | 35,5 % | 0,732 |
+| 1+2 (cuerpo) | **9,7 %** | **0,206** |
+| 1+2+3 (pies) | 39,8 % | 0,829 |
+
+El segundo trazo **destruye** la máscara (solo queda la cabeza): el worker
+elige «el mayor candidato que contiene TODOS los puntos de primer plano» y,
+si ninguno lo cumple, cae al de mayor score (una máscara pequeña). No hay
+acumulación real de trazos en SAM 2.1: cada cálculo resegmenta desde cero.
+
+**Pendiente (v0.4)**: acumular de verdad (unir máscara previa + segmentar
+solo los trazos nuevos, o caja envolvente por trazo y unión), y que el primer
+trazo cubra ya el personaje entero (caja a partir del punto, no puntos sueltos).
+
+**Flujo de pruebas**: el usuario arranca Krita, activa la herramienta, pinta y
+cierra la imagen → queda una `sesion-*` nueva en `tests/recordings/` →
+`.engine/venv/bin/python tests/replay_recording.py` la repite y compara.

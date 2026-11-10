@@ -158,6 +158,7 @@ class StrokeEdits:
             return
         kind, _r, pts, _f = self.strokes[-1]
         log.info(f"trazo {kind} con {len(pts)} puntos")
+        self.recorder.stroke(self)
         if self.auto_preview:
             self.status.emit(f"{len(self.strokes)} trazos, calculando…")
             self._timer.start()

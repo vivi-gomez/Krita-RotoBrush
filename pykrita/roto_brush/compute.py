@@ -79,6 +79,8 @@ class ComputeOps:
             self.source = (node_id, rect, px)
             self._source_node = node
             log.info(f"origen capturado: {rect[2]}x{rect[3]}")
+            self.recorder.layer_info(self)
+            self.recorder.image(self)
         rect = self.source[1]
         if not self._strokes_inside(rect):
             first = next((s[2][0] for s in self.strokes if s[2]), (0.0, 0.0))
@@ -198,6 +200,7 @@ class ComputeOps:
         fg = sum(1 for a in alpha if a > 127)
         pct = fg * 100.0 / max(1, len(alpha))
         log.info(f"mascara: {rect[2]}x{rect[3]}, primer plano {pct:.1f} %")
+        self.recorder.mask(self, pct, getattr(self, "engine_kind", "mobile"))
         self.overlay_update()
         self.status.emit(f"máscara {pct:.0f} % · pinta más o pulsa Aplicar")
         self.busy = False
@@ -318,6 +321,7 @@ class ComputeOps:
 
     def _on_image_event(self, *_args) -> None:
         log.info("imagen creada/cerrada: limpiando trazos y desactivando")
+        self.recorder.note("imagen creada/cerrada")
         self.strokes = []
         self.mask = None
         self.selected = None
