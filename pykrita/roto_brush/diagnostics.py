@@ -27,6 +27,79 @@ def _mouse_event(kind: str, local, glob):
 
 
 class Diagnostics:
+    def samtest(self) -> None:
+        """Prueba SAM 2.1 con un trazo fijo y guarda el alfa (sin aplicar)."""
+        out = os.environ.get("ROTO_BRUSH_SAMTEST", "")
+        try:
+            from . import sam2_client
+
+            doc = self.document
+            node = doc.activeNode() if doc is not None else None
+            if node is None:
+                log.error("samtest: sin capa")
+                return
+            b = node.bounds()
+            rect = (b.x(), b.y(), b.width(), b.height())
+            px = bytes(node.pixelData(*rect))
+            strokes = [[0, 8.0, [[450.0, 600.0], [570.0, 700.0]], -1.0]]
+            local = self._to_layer(strokes, rect)
+            pts, _box = self._sam2_prompt(local, rect)
+            alpha = sam2_client.segment(px, rect[2], rect[3], pts, None)
+            alpha = self.engine.postprocess(alpha, rect[2], rect[3], fill=True, clean=True, blur=0.6)
+            buf = bytearray(rect[2] * rect[3] * 4)
+            for i, v in enumerate(alpha):
+                buf[i * 4] = v
+                buf[i * 4 + 1] = v
+                buf[i * 4 + 2] = v
+                buf[i * 4 + 3] = 255
+            img = QtGui.QImage(bytes(buf), rect[2], rect[3], QtGui.QImage.Format.Format_RGBA8888)
+            img.copy().save(out, "PNG")
+            fg = sum(1 for v in alpha if v > 127) * 100.0 / len(alpha)
+            log.info(f"samtest: {out} {rect[2]}x{rect[3]}, primer plano {fg:.1f} %")
+        except Exception as e:  # noqa: BLE001
+            log.error(f"samtest: {e!r}")
+
+    def applytest(self) -> None:
+        """Simula varios trazos, calcula y aplica; guarda el resultado final."""
+        out = os.environ.get("ROTO_BRUSH_APPLYTEST", "")
+        try:
+            doc = self.document
+            node = doc.activeNode()
+            b = node.bounds()
+            rect = (b.x(), b.y(), b.width(), b.height())
+            self.strokes = [
+                [0, 8.0, [[(450.0), (600.0)], [570.0, 700.0]], -1.0],
+                [0, 8.0, [[300.0, 850.0], [330.0, 880.0]], -1.0],
+                [0, 8.0, [[700.0, 850.0], [730.0, 880.0]], -1.0],
+                [1, 8.0, [[30.0, 30.0]], -1.0],
+                [1, 8.0, [[990.0, 30.0]], -1.0],
+                [1, 8.0, [[30.0, 990.0]], -1.0],
+                [1, 8.0, [[990.0, 990.0]], -1.0],
+            ]
+            self.compute()
+            loop = QtCore.QEventLoop()
+            self.done.connect(lambda _p: loop.quit())
+            self.failed.connect(lambda _p: loop.quit())
+            QtCore.QTimer.singleShot(60000, loop.quit)
+            loop.exec()
+            log.info(f"applytest: mascara={self.mask is not None}")
+            self.apply()
+            QtCore.QTimer.singleShot(400, lambda: self._save_node(node, rect, out))
+        except Exception as e:  # noqa: BLE001
+            log.error(f"applytest: {e!r}")
+
+    def _save_node(self, node, rect, out) -> None:
+        try:
+            px = bytes(node.pixelData(*rect))
+            buf = bytearray(px)
+            for i in range(rect[2] * rect[3]):
+                buf[i * 4], buf[i * 4 + 2] = buf[i * 4 + 2], buf[i * 4]
+            img = QtGui.QImage(bytes(buf), rect[2], rect[3], QtGui.QImage.Format.Format_RGBA8888)
+            img.copy().save(out, "PNG")
+            log.info(f"applytest: guardado {out}")
+        except Exception as e:  # noqa: BLE001
+            log.error(f"applytest guardar: {e!r}")
+
     def dump_ui(self) -> None:
         """Diagnóstico: widgets del lienzo y transformaciones."""
         try:

@@ -239,7 +239,7 @@ fn prompt_from(strokes: &[StrokeSpec]) -> Prompt {
 }
 
 /// Elimina componentes conexas pequeñas del primer plano (fugas del graph cut).
-fn remove_islands(alpha: &mut [f32], w: usize, h: usize) {
+pub(crate) fn remove_islands(alpha: &mut [f32], w: usize, h: usize) {
     let n = w * h;
     if n == 0 || alpha.len() != n {
         return;
@@ -279,7 +279,7 @@ fn remove_islands(alpha: &mut [f32], w: usize, h: usize) {
 }
 
 /// Rellena los huecos cerrados: lo que no se alcanza desde el borde es objeto.
-fn fill_holes(alpha: &mut [f32], w: usize, h: usize) {
+pub(crate) fn fill_holes(alpha: &mut [f32], w: usize, h: usize) {
     let n = w * h;
     if n == 0 || alpha.len() != n {
         return;

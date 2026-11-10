@@ -155,7 +155,21 @@ class ComputeOps:
             if not any(p[2] == 1 for p in pts):
                 raise RuntimeError("hace falta al menos un trazo verde")
             alpha = sam2_client.segment(px, rect[2], rect[3], pts, box)
-            log.info(f"SAM 2.1: {rect[2]}x{rect[3]} en {time.time() - t0:.2f} s")
+            if len(alpha) != rect[2] * rect[3]:
+                raise RuntimeError(
+                    f"alfa de tamaño inesperado: {len(alpha)} != {rect[2] * rect[3]}"
+                )
+            # "Suavizar borde" también manda en SAM 2.1 (0-16 -> 0..2 px).
+            blur = min(2.0, max(0.0, float(self.edge_smooth) / 8.0))
+            alpha = self.engine.postprocess(
+                alpha, rect[2], rect[3], fill=bool(self.fill_holes),
+                clean=bool(self.clean), blur=blur,
+            )
+            fg = sum(1 for a in alpha if a > 127) * 100.0 / len(alpha)
+            log.info(
+                f"SAM 2.1: {rect[2]}x{rect[3]} en {time.time() - t0:.2f} s, "
+                f"{len(pts)} puntos, primer plano {fg:.1f} %"
+            )
         except Exception as e:  # noqa: BLE001
             self.failed.emit(f"SAM 2.1: {e}")
             return

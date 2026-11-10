@@ -90,6 +90,10 @@ class Controller(StrokeEdits, ComputeOps, Diagnostics, QObject):
             QtCore.QTimer.singleShot(5000, self.dump_ui)
         if os.environ.get("ROTO_BRUSH_SELFTEST"):
             QtCore.QTimer.singleShot(8000, self.selftest)
+        if os.environ.get("ROTO_BRUSH_SAMTEST"):
+            QtCore.QTimer.singleShot(9000, self.samtest)
+        if os.environ.get("ROTO_BRUSH_APPLYTEST"):
+            QtCore.QTimer.singleShot(9000, self.applytest)
         if os.environ.get("ROTO_BRUSH_EVENTTEST"):
             QtCore.QTimer.singleShot(9000, self.event_test)
 

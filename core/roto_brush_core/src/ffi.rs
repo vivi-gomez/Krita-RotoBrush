@@ -247,3 +247,39 @@ fn parse_strokes(buf: *const f32, len: usize) -> Result<Vec<crate::StrokeSpec>, 
     }
     Ok(out)
 }
+
+/// Posproceso de un alfa externo (p. ej. SAM 2.1): rellena huecos, quita islas
+/// y aplica un desenfoque suave. `alpha` es w*h bytes y se modifica en sitio.
+#[no_mangle]
+pub extern "C" fn rb_alpha_post(
+    alpha: *mut u8,
+    w: u32,
+    h: u32,
+    fill: i32,
+    clean: i32,
+    blur: f32,
+) -> i32 {
+    if alpha.is_null() || w == 0 || h == 0 {
+        return -1;
+    }
+    let n = (w as usize) * (h as usize);
+    let src = unsafe { slice::from_raw_parts(alpha, n) };
+    let mut a: Vec<f32> = src.iter().map(|v| *v as f32 / 255.0).collect();
+    let w = w as usize;
+    let h = h as usize;
+    if fill != 0 {
+        crate::render::fill_holes(&mut a, w, h);
+    }
+    if blur > 0.0 {
+        a = effectcraft_track::roto::matting::gauss(&a, w, h, blur as f64);
+    }
+    // Después del desenfoque: así también caen las motas que el suavizado creó.
+    if clean != 0 {
+        crate::render::remove_islands(&mut a, w, h);
+    }
+    let dst = unsafe { slice::from_raw_parts_mut(alpha, n) };
+    for (d, v) in dst.iter_mut().zip(&a) {
+        *d = (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+    }
+    0
+}

@@ -759,3 +759,22 @@ puntos**, muestreados (máx. ~12 por trazo).
 **Verificación**: cilindro con un punto → 3,7 % (el cilindro, limpio); yeti con
 punto en el pecho → 32,7 %; dentro de Krita, SAM 2.1 → 50,9 % de primer plano en
 0,2 s.
+
+## 2026-11-10 — Sesión 3: revisión y prueba completa de SAM 2.1 (ronda 25)
+
+**Revisión de código**
+
+- `_work_sam2` no validaba el tamaño del alfa recibido: añadida comprobación y
+  registro de puntos y porcentaje.
+- El alfa de SAM no pasaba por el posproceso del motor (huecos, islas,
+  suavizado): ahora `rb_alpha_post` rellena huecos, desenfoca y **limpia islas
+  después** del desenfoque (antes las motas del suavizado sobrevivían).
+- El control "Suavizar borde" ahora también afecta a SAM 2.1 (0–16 → 0–2 px).
+
+**Prueba completa dentro de Krita 6** (trazos simulados: cuerpo + dos pies,
+4 clics de fondo): `SAM 2.1: 1024x1024 en 0.33 s`, primer plano 43,9 %, resultado
+aplicado con el personaje completo (ver `tests/results/applytest2.png`).
+
+**Valoración honesta**: el recorte es bueno para un uso real (objeto completo con
+3 trazos cortos). Quedan motas diminutas junto a los pies si el trazo no los
+cubre, y las zonas de pelo muy difuso aún pueden requerir Refine.

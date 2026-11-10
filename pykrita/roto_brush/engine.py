@@ -36,6 +36,10 @@ class Engine:
         self.lib.rb_model_load.restype = ctypes.c_void_p
         self.lib.rb_model_load.argtypes = [ctypes.c_char_p]
         self.lib.rb_model_free.argtypes = [ctypes.c_void_p]
+        self.lib.rb_alpha_post.argtypes = [
+            ctypes.c_char_p, ctypes.c_uint, ctypes.c_uint, ctypes.c_int,
+            ctypes.c_int, ctypes.c_float,
+        ]
         self.lib.rb_gray_mask.argtypes = [
             ctypes.c_char_p, ctypes.c_uint, ctypes.c_uint, ctypes.c_char_p,
         ]
@@ -76,6 +80,15 @@ class Engine:
         if rc != 0:
             raise RuntimeError("no se pudo preparar la vista previa")
         return out.raw
+
+    def postprocess(self, alpha: bytes, w: int, h: int, fill: bool = True,
+                    clean: bool = True, blur: float = 0.0) -> bytes:
+        """Limpia un alfa externo: huecos, islas y desenfoque suave."""
+        buf = ctypes.create_string_buffer(bytes(alpha), len(alpha))
+        rc = self.lib.rb_alpha_post(buf, w, h, int(fill), int(clean), float(blur))
+        if rc != 0:
+            raise RuntimeError("no se pudo limpiar el alfa")
+        return buf.raw
 
     def gray_mask(self, alpha: bytes, w: int, h: int) -> bytes:
         """Máscara en escala de grises (blanco = objeto, negro = fondo)."""
