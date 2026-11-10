@@ -8,7 +8,8 @@ from krita import Krita
 
 from . import canvas, log
 from . import sam2_client
-from .engine import FG, MODEL, Engine, Params
+from .maskops import _dilate1, _erase_region, _merge, _subtract
+from .engine import FG, MODEL, Engine, Params, BG, REFINE, REFINE_ERASE
 from .qt import QtCore, QtGui, QtWidgets, pyqtSignal
 
 
@@ -150,28 +151,58 @@ class ComputeOps:
                 pts.append([round(pair[0], 1), round(pair[1], 1), label])
         return pts, None
 
+    @staticmethod
+    def _sample(points, label, cap: int = 12):
+        """Muestrea ~`cap` puntos de un trazo y los marca con `label`."""
+        step = max(1, len(points) // cap)
+        chosen = points[::step]
+        if chosen[-1] != points[-1]:
+            chosen.append(points[-1])
+        return [[round(p[0], 1), round(p[1], 1), label] for p in chosen]
+
     def _work_sam2(self, px, rect, strokes, node):
+        """Acumula de verdad: cada trazo verde UNE su máscara al resultado y
+        cada rojo resta SOLO su zona barrida. El alfa del worker llega en
+        0 o 255, así que unir e intersecar son un OR y un AND de bits."""
         t0 = time.time()
         try:
-            pts, box = self._sam2_prompt(strokes, rect)
-            if not any(p[2] == 1 for p in pts):
+            acc = None
+            green_pts = []
+            calls = 0
+            w, h = rect[2], rect[3]
+            for kind, radius, pts, _f in strokes:
+                if not pts:
+                    continue
+                if kind in (FG, REFINE):
+                    # Contexto completo: TODOS los puntos verdes hasta el trazo
+                    # actual; si algún cálculo colapsa, la unión no lo pierde.
+                    green_pts.extend(self._sample(pts, 1))
+                    mask = sam2_client.segment(px, w, h, list(green_pts))
+                    calls += 1
+                    acc = mask if acc is None else _merge(acc, mask, True)
+                elif kind in (BG, REFINE_ERASE):
+                    # SAM no sabe "quitar una zona": con puntos negativos
+                    # devuelve solo un fragmento. La goma resta el barrido.
+                    if acc is None:
+                        continue
+                    acc = _subtract(acc, _erase_region(pts, radius, w, h))
+            if acc is None:
                 raise RuntimeError("hace falta al menos un trazo verde")
-            alpha = sam2_client.segment(px, rect[2], rect[3], pts, box)
-            if len(alpha) != rect[2] * rect[3]:
-                raise RuntimeError(
-                    f"alfa de tamaño inesperado: {len(alpha)} != {rect[2] * rect[3]}"
-                )
+            fg = sum(1 for a in acc if a > 127) * 100.0 / len(acc)
+            log.info(
+                f"SAM 2.1 acumulado: {w}x{h} en {time.time() - t0:.2f} s, "
+                f"{calls} llamadas, {len(strokes)} trazos, primer plano {fg:.1f} %"
+            )
+            alpha = acc
             # "Suavizar borde" también manda en SAM 2.1 (0-16 -> 0..2 px).
             blur = min(2.0, max(0.0, float(self.edge_smooth) / 8.0))
             alpha = self.engine.postprocess(
-                alpha, rect[2], rect[3], fill=bool(self.fill_holes),
+                alpha, w, h, fill=bool(self.fill_holes),
                 clean=bool(self.clean), blur=blur,
             )
+            alpha = _dilate1(alpha, w)
             fg = sum(1 for a in alpha if a > 127) * 100.0 / len(alpha)
-            log.info(
-                f"SAM 2.1: {rect[2]}x{rect[3]} en {time.time() - t0:.2f} s, "
-                f"{len(pts)} puntos, primer plano {fg:.1f} %"
-            )
+            log.info(f"SAM 2.1 posprocesado: primer plano {fg:.1f} %")
         except Exception as e:  # noqa: BLE001
             self.failed.emit(f"SAM 2.1: {e}")
             return

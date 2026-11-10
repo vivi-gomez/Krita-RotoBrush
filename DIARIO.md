@@ -820,3 +820,37 @@ trazo cubra ya el personaje entero (caja a partir del punto, no puntos sueltos).
 **Flujo de pruebas**: el usuario arranca Krita, activa la herramienta, pinta y
 cierra la imagen → queda una `sesion-*` nueva en `tests/recordings/` →
 `.engine/venv/bin/python tests/replay_recording.py` la repite y compara.
+
+## Sesión 5: acumulación real de trazos en SAM 2.1 (v0.4-alpha)
+
+**Implementado** (validado en el arnés antes de tocar Krita, como acordamos):
+
+1. **Unión acumulativa** (`compute._work_sam2`): cada trazo nuevo segmenta con
+   TODOS los puntos verdes del trazo actual (contexto completo) y su máscara
+   se UNE a la acumulada (`maskops._merge`, OR a nivel de bits sobre el alfa
+   0/255: 3,5 ms por mega). Si un cálculo colapsa, la unión no pierde lo
+   ganado. Los rojos/Refine-erase ya no llaman a SAM con negativos: restan
+   SOLO su barrido local (`maskops._erase_region` + `_subtract`).
+2. **Dilatación de 1 px** (`maskops._dilate1`, desplazamientos de enteros,
+   11 ms): SAM recorta sistemáticamente el vello del borde; recupera 0,03 IoU.
+3. `tests/replay_recording.py` replica ahora el algoritmo nuevo del plugin,
+   trazo a trazo, y `tests/recordings/sesion-TEST-borra` añade un trazo rojo
+   de borrado a la sesión sintética para probar la goma.
+
+**Medido contra la referencia EFFECTCRAFT** (IoU con el alfa de la imagen):
+
+| sesión / trazo | antes (v0.3) | ahora (v0.4) |
+|---|---|---|
+| 1 cabeza | 35,5 % · IoU 0,732 | igual (no hay nada que acumular) |
+| +2 cuerpo | **9,7 % · 0,206 (colapso)** | 35,6 % · 0,733 |
+| +3 pies | 39,8 % · 0,829 | 40,8 % · 0,841 (0,872 con dilatación) |
+| +4 goma en pies | — | 39,6 % · 0,817 (quita solo el barrido) |
+
+La goma con negativos de SAM se probó y **no funciona**: devuelve solo un
+fragmento (10,3 %); el borrado local es predecible y no interfiere con la
+futura integración con SAM (el video de EffectCraft hace algo mejor con los
+rojos; ya se verá al analizarlo).
+
+**Pendiente**: prueba real del usuario (reinstalar con `scripts/install.sh`
+primero); análisis de los vídeos de referencia para el comportamiento de los
+trazos rojos; herramienta del toolbox y undo nativo.

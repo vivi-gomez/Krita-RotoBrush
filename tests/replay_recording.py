@@ -30,6 +30,13 @@ _spec = importlib.util.spec_from_file_location(
 sam2_client = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(sam2_client)
 
+# maskops: mismas operaciones de máscara que usa el plugin.
+_spec2 = importlib.util.spec_from_file_location(
+    "maskops", ROOT / "pykrita" / "roto_brush" / "maskops.py"
+)
+maskops = importlib.util.module_from_spec(_spec2)
+_spec2.loader.exec_module(maskops)
+
 
 def latest_session():
     candidates = sorted(
@@ -67,7 +74,7 @@ def to_layer(strokes, rect):
 
 
 def sam2_prompt(strokes):
-    """Igual que ComputeOps._sam2_prompt: muestrear ~12 puntos por trazo."""
+    """Modo antiguo (heredado): todos los puntos juntos en una sola llamada."""
     pts = []
     for kind, _r, points, _f in strokes:
         if kind not in (0, 1) or not points:
@@ -81,6 +88,15 @@ def sam2_prompt(strokes):
         for pair in chosen:
             pts.append([round(pair[0], 1), round(pair[1], 1), label])
     return pts
+
+
+def sample(points, label, cap: int = 12):
+    """Igual que ComputeOps._sample."""
+    step = max(1, len(points) // cap)
+    chosen = points[::step]
+    if chosen[-1] != points[-1]:
+        chosen.append(points[-1])
+    return [[round(p[0], 1), round(p[1], 1), label] for p in chosen]
 
 
 def reference_alpha(ref_path: Path, w: int, h: int) -> np.ndarray:
@@ -145,26 +161,34 @@ def main() -> int:
     b, g, r, a = img.split()
     rgb = Image.merge("RGB", (r, g, b))
 
-    print(f"{'trazos':>6} {'primer plano':>13} {'IoU ref':>9}  puntos")
-    for k in range(1, len(strokes) + 1):
-        local = to_layer(strokes[:k], rect)
-        pts = sam2_prompt(local)
-        if not any(p[2] == 1 for p in pts):
-            print(f"{k:>6}  (sin puntos verdes todavía)")
-            continue
-        alpha = sam2_client.segment(raw, w, h, pts)
-        mk = np.frombuffer(alpha, dtype=np.uint8).reshape(h, w) > 127
-        fg = mk.mean() * 100.0
+    print(f"{'trazo':>6} {'accion':>7} {'primer plano':>13} {'IoU ref':>9}")
+    local = to_layer(strokes, rect)
+    acc = np.zeros(w * h, dtype=bool)
+    green_pts = []
+    kinds = {0: "verde", 1: "rojo", 2: "refine", 3: "borra"}
+    for i, (kind, radius, pts, _f) in enumerate(local, start=1):
+        if kind in (0, 2) and pts:  # FG / REFINE: UNE, con el contexto entero
+            green_pts.extend(sample(pts, 1))
+            alpha = sam2_client.segment(raw, w, h, list(green_pts))
+            mk = np.frombuffer(alpha, dtype=np.uint8).reshape(-1) > 127
+            acc |= mk
+        elif kind in (1, 3) and pts and acc.any():  # goma: resta el barrido
+            reg = np.frombuffer(
+                maskops._erase_region(pts, radius, w, h), np.uint8
+            ) > 127
+            acc &= ~reg
+        fg = acc.mean() * 100.0
         iou = float("nan")
         if ref is not None:
-            inter = np.logical_and(mk, ref).sum()
-            union = np.logical_or(mk, ref).sum()
+            r2 = ref.reshape(-1)
+            inter = np.logical_and(acc, r2).sum()
+            union = np.logical_or(acc, r2).sum()
             iou = inter / union if union else 0.0
-        mask_img = Image.fromarray((mk * 255).astype(np.uint8))
-        mask_img.save(out / f"mascara_{k}.png")
+        mask_img = Image.fromarray((acc.reshape(h, w) * 255).astype(np.uint8))
+        mask_img.save(out / f"mascara_{i}.png")
         shaded = Image.composite(rgb, Image.new("RGB", (w, h), (30, 30, 30)), mask_img)
-        shaded.save(out / f"vista_{k}.png")
-        print(f"{k:>6} {fg:>12.1f} % {iou:>9.3f}  {len(pts)}")
+        shaded.save(out / f"vista_{i}.png")
+        print(f"{i:>6} {kinds.get(kind, '?'):>7} {fg:>12.1f} % {iou:>9.3f}")
     print(f"\nmáscaras y vistas en {out}")
     return 0
 
