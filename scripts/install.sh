@@ -18,6 +18,7 @@ cp -r "$REPO/pykrita/roto_brush/." "$KB/"
 rm -f "$KB/lib/libroto_brush_core.so"
 cp "$LIB" "$KB/lib/"
 cp "$REPO/pykrita/roto_brush.desktop" "$KD"
+printf '%s\n' "$REPO" > "$KB/engine_dir"
 
 if [ -f "$KC" ] && ! grep -q "^enable_roto_brush=" "$KC"; then
   cp "$KC" "$KC.backup_roto_brush"

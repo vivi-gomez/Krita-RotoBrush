@@ -7,6 +7,7 @@ import time
 from krita import Krita
 
 from . import canvas, log
+from . import sam2_client
 from .engine import FG, MODEL, Engine, Params
 from .qt import QtCore, QtGui, QtWidgets, pyqtSignal
 
@@ -33,6 +34,7 @@ class ComputeOps:
         self.best = True
         self.auto_preview = True
         self.edge_smooth = 8
+        self.engine_kind = "sam2"
         self.edit_mode = False
         self.view_mask = False
         self.selected = None
@@ -112,7 +114,12 @@ class ComputeOps:
         )
         self.busy = True
         self.status.emit("calculando…")
-        threading.Thread(target=self._work, args=(px, rect, strokes, params, node), daemon=True).start()
+        if getattr(self, "engine_kind", "mobile") == "sam2" and sam2_client.ping():
+            threading.Thread(target=self._work_sam2, args=(px, rect, strokes, node), daemon=True).start()
+        else:
+            if getattr(self, "engine_kind", "mobile") == "sam2":
+                self.status.emit("SAM 2.1 no responde: uso MobileSAM")
+            threading.Thread(target=self._work, args=(px, rect, strokes, params, node), daemon=True).start()
 
     @staticmethod
     def _to_layer(strokes, rect):
@@ -123,6 +130,42 @@ class ComputeOps:
             (int(k), float(r), [[p[0] - x0, p[1] - y0] for p in pts], float(f))
             for k, r, pts, f in strokes
         ]
+
+    @staticmethod
+    def _sam2_prompt(strokes, rect):
+        """Puntos y caja para SAM 2.1 en coordenadas de la capa."""
+        pts = []
+        x0, y0, x1, y1 = 1e9, 1e9, -1e9, -1e9
+        for kind, _r, points, _f in strokes:
+            if kind not in (0, 1):
+                continue
+            label = 1 if kind == 0 else 0
+            for pair in points:
+                pts.append([pair[0] - rect[0], pair[1] - rect[1], label])
+                if label == 1:
+                    x0 = min(x0, pair[0] - rect[0])
+                    y0 = min(y0, pair[1] - rect[1])
+                    x1 = max(x1, pair[0] - rect[0])
+                    y1 = max(y1, pair[1] - rect[1])
+        box = None
+        if x1 > x0 and y1 > y0:
+            mx = max(8.0, (x1 - x0) * 0.1)
+            my = max(8.0, (y1 - y0) * 0.1)
+            box = [max(0.0, x0 - mx), max(0.0, y0 - my), x1 + mx, y1 + my]
+        return pts, box
+
+    def _work_sam2(self, px, rect, strokes, node):
+        t0 = time.time()
+        try:
+            pts, box = self._sam2_prompt(strokes, rect)
+            if not any(p[2] == 1 for p in pts):
+                raise RuntimeError("hace falta al menos un trazo verde")
+            alpha = sam2_client.segment(px, rect[2], rect[3], pts, box)
+            log.info(f"SAM 2.1: {rect[2]}x{rect[3]} en {time.time() - t0:.2f} s")
+        except Exception as e:  # noqa: BLE001
+            self.failed.emit(f"SAM 2.1: {e}")
+            return
+        self.done.emit((alpha, px, rect, node))
 
     def _work(self, px, rect, strokes, params, node):
         t0 = time.time()

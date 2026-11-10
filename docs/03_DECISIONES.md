@@ -86,3 +86,19 @@ operaciones de escritura de píxeles desde Python no crean pasos de deshacer.
 Hasta que exista la herramienta nativa (M3), la herramienta ofrece **Restaurar**
 y se evita ensuciar el undo cambiando a Move y consumiendo los eventos.
 **Aceptada** como limitación temporal.
+
+## D-016 — Versión alpha cerrada y salto a SAM 2.1
+
+La versión con MobileSAM se cierra como **v0.1-alpha** (etiqueta `v0.1-alpha`).
+El siguiente motor es **SAM 2.1** (Hiera-Large, Apache-2.0) ejecutado en un
+**proceso aparte** con su propio Python y PyTorch (GPU), hablando por TCP local
+con el plugin. Motivo: MobileSAM se queda corto en objetos parecidos al fondo y
+en número de trazos necesarios; separar el motor evita meter PyTorch en Krita.
+**Aceptada.**
+
+## D-017 — SAM 3 queda en evaluación
+
+SAM 3 (Meta, noviembre de 2025) añade *prompts por concepto* (texto), lo que
+podría permitir “segmenta los cilindros”. Se evaluará después de estabilizar
+SAM 2.1, porque exige otro repositorio y checkpoints y aún no hay integración
+probada con este flujo.

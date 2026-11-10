@@ -42,3 +42,9 @@ tests/results/*.png
 
 # AppImages extraídas (no se versionan)
 .appimage/
+
+# Motor pesado (venv con torch) y modelos
+.engine/
+
+# Modelos descargados
+.engine/models/

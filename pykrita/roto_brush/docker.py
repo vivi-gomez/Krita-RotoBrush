@@ -5,6 +5,7 @@ from pathlib import Path
 from krita import DockWidget
 
 from . import log
+from . import engine_runner, sam2_client
 from .controller import Controller, default_model_path
 from .engine import BG, FG, REFINE, REFINE_ERASE
 from .qt import QtWidgets, orientation
@@ -42,6 +43,18 @@ class RotoBrushDocker(DockWidget):
         self.btn_paint.setChecked(False)
         self.btn_paint.toggled.connect(self._toggle_paint)
         lay.addWidget(self.btn_paint)
+
+        engine_row = QtWidgets.QHBoxLayout()
+        engine_row.addWidget(QtWidgets.QLabel("Motor"))
+        self.engine_combo = QtWidgets.QComboBox()
+        self.engine_combo.addItems(["SAM 2.1 (GPU)", "MobileSAM (CPU)"])
+        self.engine_combo.currentIndexChanged.connect(self._set_engine)
+        engine_row.addWidget(self.engine_combo)
+        lay.addLayout(engine_row)
+
+        self.btn_engine = QtWidgets.QPushButton("Arrancar motor SAM 2.1")
+        self.btn_engine.clicked.connect(self._start_engine)
+        lay.addWidget(self.btn_engine)
 
         row = QtWidgets.QHBoxLayout()
         self.modes = QtWidgets.QButtonGroup(box)
@@ -233,6 +246,25 @@ class RotoBrushDocker(DockWidget):
             w.blockSignals(True)
             w.setChecked(bool(v))
             w.blockSignals(False)
+
+    def _set_engine(self, index: int) -> None:
+        self.c.engine_kind = "sam2" if index == 0 else "mobile"
+        self._status("motor: " + ("SAM 2.1" if index == 0 else "MobileSAM"))
+
+    def _start_engine(self) -> None:
+        directory = engine_runner.engine_dir()
+        if directory is None:
+            self._status("falta ROTO_BRUSH_ENGINE (carpeta del proyecto)")
+            return
+        if sam2_client.ping():
+            self._status("SAM 2.1 ya está en marcha")
+            return
+        try:
+            engine_runner.start_worker(directory)
+        except Exception as e:  # noqa: BLE001
+            self._status(f"no se pudo arrancar: {e!r}")
+            return
+        self._status("arrancando SAM 2.1 (unos segundos)…")
 
     def _opt(self, name: str, value) -> None:
         setattr(self.c, name, value)

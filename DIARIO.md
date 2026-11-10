@@ -714,3 +714,26 @@ suave a 8–12.
 
 **Pendiente**: pelo difuso (sigue siendo el punto débil) y valorar SAM 2.1 con
 GPU.
+
+## 2026-11-10 — Sesión 3: cierre de la alpha y motor SAM 2.1 (ronda 23)
+
+**Hecho**
+
+1. Versión alpha **cerrada**: commit `ee40ce0` y etiqueta `v0.1-alpha`.
+2. **PyTorch 2.6 + CUDA 12.4** en `.engine/venv` (fuera de Krita) y `sam2`
+   (Apache-2.0) con `sam2.1_hiera_large.pt` (898 MB) en `.engine/models/`.
+3. **Prototipo SAM 2.1** con puntos: cilindro de `prueba.kra` a 0,945 de score.
+4. **Worker** (`engine/worker.py`): servidor TCP local, protocolo JSON con
+   longitud, devuelve el mejor de los 3 masks.
+5. **Plugin**: selector de motor (SAM 2.1 / MobileSAM), botón para arrancar el
+   worker, cliente `sam2_client.py` y respaldo automático a MobileSAM si no
+   responde. `install.sh` deja la ruta del proyecto en `engine_dir`.
+6. Verificado en Krita 6: `SAM 2.1: 2247x1481 en 0.45 s` y
+   `2203x740 en 0.25 s` (RTX 3090). Corregido de paso `QAction` (Qt6 lo pone en
+   QtGui), que rompía el atajo Ctrl+Z.
+
+**Pendiente**
+
+- Afinar el *prompt* (muestreo de puntos, caja) y el suavizado del alfa de SAM.
+- Decidir si SAM 3 aporta con prompts por texto.
+- Herramienta del toolbox y undo nativo siguen pendientes.

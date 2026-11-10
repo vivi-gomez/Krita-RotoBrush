@@ -30,6 +30,12 @@ def cursor_shape(name: str):
     return getattr(a, name) if a is not None else getattr(Qt, name)
 
 
+def qaction_class():
+    """QAction está en QtGui desde Qt6."""
+    cls = getattr(QtGui, "QAction", None)
+    return cls if cls is not None else QtWidgets.QAction
+
+
 def shortcut_context(name: str):
     a = getattr(Qt, "ShortcutContext", None)
     return getattr(a, name) if a is not None else getattr(Qt, name)

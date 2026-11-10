@@ -6,7 +6,10 @@ dejándolo en transparencia. Inspirado en el Roto Brush de EffectCraft.
 
 ## Estado
 
-**Planificación.** No hay código todavía. Hoja de ruta en `docs/04_PLAN.md`.
+- `v0.1-alpha`: plugin funcional con MobileSAM (docker, trazos, vista previa,
+  undo interno). Etiqueta `v0.1-alpha`.
+- **v2 en curso**: motor **SAM 2.1** en GPU mediante un proceso aparte
+  (`engine/worker.py`). Ver `docs/08_MOTOR_SAM2.md`.
 
 ## Documentos
 

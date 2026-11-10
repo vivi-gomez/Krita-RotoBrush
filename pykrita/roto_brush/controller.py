@@ -13,7 +13,7 @@ from .overlay import Overlay
 from .compute import ComputeOps
 from .diagnostics import Diagnostics
 from .edits import StrokeEdits
-from .qt import QObject, QtCore, QtGui, QtWidgets, pyqtSignal, shortcut_context
+from .qt import QObject, QtCore, QtGui, QtWidgets, pyqtSignal, qaction_class, shortcut_context
 
 PREVIEW_DELAY_MS = 700
 
@@ -157,7 +157,7 @@ class Controller(StrokeEdits, ComputeOps, Diagnostics, QObject):
                 self._undo_krita = kact
                 self._undo_shortcuts = list(kact.shortcuts())
                 kact.setShortcuts([])
-            act = QtWidgets.QAction(qwin)
+            act = qaction_class()(qwin)
             act.setShortcut(QtGui.QKeySequence("Ctrl+Z"))
             act.setShortcutContext(shortcut_context("WindowShortcut"))
             act.triggered.connect(self.undo)
