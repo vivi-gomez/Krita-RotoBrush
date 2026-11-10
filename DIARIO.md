@@ -737,3 +737,25 @@ GPU.
 - Afinar el *prompt* (muestreo de puntos, caja) y el suavizado del alfa de SAM.
 - Decidir si SAM 3 aporta con prompts por texto.
 - Herramienta del toolbox y undo nativo siguen pendientes.
+
+## 2026-11-10 — Sesión 3: máscaras ruidosas de SAM 2.1 (ronda 24)
+
+**Síntoma**: con SAM 2.1, un solo trazo producía ruido (motas por toda la
+imagen) y el objeto no aparecía.
+
+**Causa 1 (la grave)**: doble desplazamiento. `compute()` ya convierte los trazos
+a coordenadas de la capa y `_sam2_prompt` les restaba otra vez el origen del
+rectángulo. Los puntos llegaban muy fuera de la imagen → SAM devolvía ruido.
+
+**Causa 2**: elegía el candidato de mayor *score*. En esta imagen SAM puntúa alto
+máscaras diminutas (0,3 % del área) y bajo las grandes: elegía la nariz o un
+mechón. Ahora el worker se queda con **el mayor candidato que contiene los puntos
+de primer plano** (y que no cubre casi toda la imagen).
+
+**Causa 3**: la caja. Una caja ajustada al trazo limita a SAM y empeora el
+resultado; con caja grande funcionaba a veces y otras no. Ahora se envían **solo
+puntos**, muestreados (máx. ~12 por trazo).
+
+**Verificación**: cilindro con un punto → 3,7 % (el cilindro, limpio); yeti con
+punto en el pecho → 32,7 %; dentro de Krita, SAM 2.1 → 50,9 % de primer plano en
+0,2 s.

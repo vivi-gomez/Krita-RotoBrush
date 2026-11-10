@@ -42,7 +42,20 @@ class Engine:
                 box=None if box is None else np.array(box),
                 multimask_output=True,
             )
-        best = int(np.argmax(scores))
+        # Elegir candidato: el mayor que contenga los puntos de primer plano y no
+        # cubra casi toda la imagen (los scores de SAM no son fiables aquí).
+        fg = [(int(p[0]), int(p[1])) for p in points if p[2] == 1]
+        h, w = masks.shape[1], masks.shape[2]
+        total = float(h * w)
+        best, best_area = int(np.argmax(scores)), 0.0
+        for i, mk in enumerate(masks):
+            area = float(mk.mean())
+            if area < 0.001 or area > 0.9:
+                continue
+            if fg and not all(0 <= x < w and 0 <= y < h and mk[y, x] > 0.5 for x, y in fg):
+                continue
+            if area > best_area:
+                best, best_area = i, area
         alpha = (masks[best] * 255).astype(np.uint8)
         return alpha, float(scores[best])
 

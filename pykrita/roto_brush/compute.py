@@ -133,26 +133,20 @@ class ComputeOps:
 
     @staticmethod
     def _sam2_prompt(strokes, rect):
-        """Puntos y caja para SAM 2.1 en coordenadas de la capa."""
+        """Puntos para SAM 2.1 (sin caja: el worker elige el mayor candidato)."""
         pts = []
-        x0, y0, x1, y1 = 1e9, 1e9, -1e9, -1e9
         for kind, _r, points, _f in strokes:
             if kind not in (0, 1):
                 continue
             label = 1 if kind == 0 else 0
-            for pair in points:
-                pts.append([pair[0] - rect[0], pair[1] - rect[1], label])
-                if label == 1:
-                    x0 = min(x0, pair[0] - rect[0])
-                    y0 = min(y0, pair[1] - rect[1])
-                    x1 = max(x1, pair[0] - rect[0])
-                    y1 = max(y1, pair[1] - rect[1])
-        box = None
-        if x1 > x0 and y1 > y0:
-            mx = max(8.0, (x1 - x0) * 0.1)
-            my = max(8.0, (y1 - y0) * 0.1)
-            box = [max(0.0, x0 - mx), max(0.0, y0 - my), x1 + mx, y1 + my]
-        return pts, box
+            n = len(points)
+            step = max(1, n // 12)
+            chosen = points[::step]
+            if chosen[-1] != points[-1]:
+                chosen.append(points[-1])
+            for pair in chosen:
+                pts.append([round(pair[0], 1), round(pair[1], 1), label])
+        return pts, None
 
     def _work_sam2(self, px, rect, strokes, node):
         t0 = time.time()
