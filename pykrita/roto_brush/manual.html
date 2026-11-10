@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es"><meta charset="utf-8">
+<title>Roto Brush</title>
+<body style="font-family:sans-serif;max-width:640px">
+<h1>Roto Brush</h1>
+<p>Pinta sobre el personaje y el fondo se vuelve transparente en la misma capa.</p>
+<ol>
+<li>Selecciona la capa (RGBA, 8 bits).</li>
+<li>Configuración → Dockers → Roto Brush.</li>
+<li>Pulsa <b>Activar pincel</b>.</li>
+<li>Pinta en verde (<b>Primer plano</b>) sobre el personaje y en rojo (<b>Fondo</b>) sobre lo que sobra.</li>
+<li>Con <b>Refine</b> marca los bordes difíciles (pelo).</li>
+<li>Al soltar el pincel se recalcula la máscara y se muestra <b>como vista previa</b>
+(el fondo se atenúa). La capa no se toca todavía.</li>
+<li>Cuando estés conforme, pulsa <b>Aplicar</b>: la transparencia se escribe en la capa.</li>
+<li><b>Restaurar</b> devuelve la capa a su estado original y borra los trazos.</li>
+</ol>
+<p>Al pulsar <b>Aplicar</b> la capa se modifica y los trazos se liberan: la
+herramienta queda limpia para la siguiente imagen.</p>
+<p><b>Feather del trazo</b>: con un trazo seleccionado, este control le da un
+suavizado propio (0 = heredar el global). Útil para el pelo: selecciona el trazo
+de esa zona y súbelo sin afectar al contorno de la ropa.</p>
+<p><b>Suavizar borde</b>: filtro guiado por color que quita el dentado del
+borde (0 lo desactiva, 8–12 suaviza mucho).</p>
+<p><b>Atajos</b>: Ctrl+Z deshace el último paso mientras la herramienta está
+activa; Supr borra el trazo seleccionado; la barra espaciadora desplaza la
+imagen como siempre.</p>
+<p><b>Editar trazos</b>: activa la casilla y haz clic sobre un trazo para
+seleccionarlo (se resalta en blanco). Puedes cambiar su pincel con el control de
+tamaño o borrarlo con <b>Borrar seleccionado</b>.</p>
+<p><b>Ver solo la máscara</b>: muestra el resultado en blanco y negro, con grises
+en el feather, sin la imagen debajo.</p>
+<p><b>Ajustes</b>: Feather y Smooth suavizan el borde; Contraste y Desplazar
+borde lo endurecen o lo mueven; Peso del modelo decide cuánto manda MobileSAM
+frente al color; Radio de búsqueda controla la propagación; Limpiar islas quita
+fragmentos sueltos.</p>
+<p>El resultado se escribe directamente en la capa activa. Si algo va mal,
+<b>Restaurar</b> lo deshace.</p>
+<p><b>Aviso:</b> en esta versión beta el deshacer de Krita (Ctrl+Z) no revierte
+el cambio de la capa: la API de Python no puede crear pasos de deshacer. Eso
+llega con la herramienta nativa.</p>
+<p>Modelo: <code>~/.config/effectcraft/models/mobile_sam.pt</code> o
+<code>ROTO_BRUSH_MODEL</code>.</p>
+</body></html>

@@ -1,0 +1,16 @@
+[package]
+name = "roto_brush_core"
+description = "Motor de segmentación y matte para el Roto Brush de Krita"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "roto_brush_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+effectcraft-track = "0.9.2"
+effectcraft-segment = "0.9.2"
+effectcraft-raster = "0.9.2"

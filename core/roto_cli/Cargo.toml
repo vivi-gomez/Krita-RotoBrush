@@ -1,0 +1,15 @@
+[package]
+name = "roto_cli"
+description = "Prueba del motor sin Krita: imagen + trazos -> PNG con transparencia"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "roto_cli"
+path = "src/main.rs"
+
+[dependencies]
+roto_brush_core = { path = "../roto_brush_core" }
+png = "0.17"

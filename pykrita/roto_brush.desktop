@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=Krita/PythonPlugin
+X-KDE-Library=roto_brush
+X-Python-2-Compatible=false
+X-Krita-Manual=manual.html
+Name=Roto Brush
+Comment=Recorte interactivo: pinta el personaje y elimina el fondo en la misma capa
+Icon=krita_tool_paint_brush

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE DOC PUBLIC '-//KDE//DTD krita 2.0//EN' 'http://www.calligra.org/DTD/krita-2.0.dtd'>
+<DOC xmlns="http://www.calligra.org/DTD/krita" editor="Krita" kritaVersion="6.0.0-beta1" syntaxVersion="2.0">
+ <IMAGE colorspacename="RGBA" description="" height="1024" mime="application/x-kra" name="prueba" profile="sRGB-elle-V2-srgbtrc.icc" width="1024" x-res="72" y-res="72">
+  <layers>
+   <layer channelflags="" channellockflags="" collapsed="0" colorlabel="0" colorspacename="RGBA" compositeop="normal" filename="layer2" intimeline="0" locked="0" name="22 Asamblea.jpg" nodetype="paintlayer" onionskin="0" opacity="255" selected="true" uuid="{d281502e-68f0-4ca4-bd2c-80d523e60a7c}" visible="1" x="-119" y="-333"/>
+   <layer channelflags="" channellockflags="" collapsed="0" colorlabel="0" colorspacename="RGBA" compositeop="normal" filename="layer3" intimeline="0" locked="0" name="Background" nodetype="paintlayer" onionskin="0" opacity="255" uuid="{350656a3-2393-4abf-b822-0fa064b9b7fa}" visible="1" x="0" y="0"/>
+  </layers>
+  <ProjectionBackgroundColor ColorData="AAAAAA=="/>
+  <GlobalAssistantsColor SimpleColorData="176,176,176,255"/>
+  <MirrorAxis>
+   <mirrorHorizontal type="value" value="0"/>
+   <mirrorVertical type="value" value="0"/>
+   <lockHorizontal type="value" value="0"/>
+   <lockVertical type="value" value="0"/>
+   <hideHorizontalDecoration type="value" value="0"/>
+   <hideVerticalDecoration type="value" value="0"/>
+   <handleSize type="value" value="32"/>
+   <horizontalHandlePosition type="value" value="64"/>
+   <verticalHandlePosition type="value" value="64"/>
+   <axisPosition type="pointf" x="512" y="512"/>
+  </MirrorAxis>
+  <ColorHistory>
+   <RGB b="0.95686274766922" g="0.949019610881805" r="0.95686274766922" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.909803926944733" g="0.905882358551025" r="0.91372549533844" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0" g="0" r="0" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.345098048448563" g="0.517647087574005" r="0.498039215803146" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.603921592235565" g="0.835294127464294" r="0.796078443527222" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="1" g="1" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="1" g="0.980392158031464" r="0.992156863212585" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.498039215803146" g="0.498039215803146" r="0.498039215803146" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.200000002980232" g="0.200000002980232" r="0.447058826684952" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0" g="0" r="0" space="sRGB-elle-V2-g10.icc"/>
+   <RGB b="1" g="1" r="1" space="sRGB built-in"/>
+   <RGB b="0.768627464771271" g="0.964705884456635" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.760784327983856" g="0.952941179275513" r="0.992156863212585" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.87058824300766" g="0.960784316062927" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.772549033164978" g="0.968627452850342" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.74117648601532" g="0.917647063732147" r="0.952941179275513" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.752941191196442" g="0.937254905700684" r="0.976470589637756" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.764705896377563" g="0.95686274766922" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.764705896377563" g="0.960784316062927" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.996078431606293" g="1" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.725490212440491" g="0.894117653369904" r="0.925490200519562" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.729411780834198" g="0.898039221763611" r="0.929411768913269" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.803921580314636" g="0.91372549533844" r="0.929411768913269" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.788235306739807" g="0.882352948188782" r="0.901960790157318" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.882352948188782" g="0.972549021244049" r="0.996078431606293" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.823529422283173" g="0.952941179275513" r="0.968627452850342" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.776470601558685" g="0.95686274766922" r="0.984313726425171" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.776470601558685" g="0.968627452850342" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.819607853889465" g="0.949019610881805" r="0.964705884456635" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.780392169952393" g="0.968627452850342" r="0.996078431606293" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.7843137383461" g="0.964705884456635" r="0.996078431606293" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.819607853889465" g="0.945098042488098" r="0.964705884456635" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.858823537826538" g="0.929411768913269" r="0.972549021244049" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.74117648601532" g="0.850980401039124" r="0.874509811401367" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.933333337306976" g="0.952941179275513" r="0.960784316062927" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.772549033164978" g="0.960784316062927" r="0.996078431606293" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0" g="0" r="0" space="sRGB built-in"/>
+   <RGB b="0.772549033164978" g="0.968627452850342" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.87058824300766" g="0.960784316062927" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.811764717102051" g="0.937254905700684" r="0.952941179275513" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.760784327983856" g="0.984313726425171" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.835294127464294" g="0.95686274766922" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.772549033164978" g="0.972549021244049" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.768627464771271" g="0.976470589637756" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.866666674613953" g="0.960784316062927" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.874509811401367" g="0.960784316062927" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.960784316062927" g="0.988235294818878" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.87058824300766" g="0.960784316062927" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="1" g="1" r="1" space="sRGB-elle-V2-g10.icc"/>
+   <RGB b="0" g="0" r="1" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.00392156885936856" g="1" r="0" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.176470592617989" g="0.211764708161354" r="0.317647069692612" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.431372553110123" g="0.529411792755127" r="0.701960802078247" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.388235300779343" g="0.513725519180298" r="0.686274528503418" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="1" g="0" r="0" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0" g="1" r="0" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.0941176488995552" g="0.156862750649452" r="0.207843139767647" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.215686276555061" g="0.219607844948769" r="0.235294118523598" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.0705882385373116" g="0.10196078568697" r="0.129411771893501" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.168627455830574" g="0.709803938865662" r="0.850980401039124" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.0666666701436043" g="0.0745098069310188" r="0.0784313753247261" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.933333337306976" g="0.921568632125854" r="0.905882358551025" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.0784313753247261" g="0.137254908680916" r="0.172549024224281" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.0941176488995552" g="0.156862750649452" r="0.20392157137394" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.0745098069310188" g="0.105882354080677" r="0.133333340287209" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.0862745121121407" g="0.133333340287209" r="0.172549024224281" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.0901960805058479" g="0.152941182255745" r="0.200000002980232" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.0862745121121407" g="0.0980392172932625" r="0.117647059261799" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.317647069692612" g="0.419607847929001" r="0.474509805440903" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="1" g="0" r="0" space="sRGB-elle-V2-srgbtrc.icc"/>
+   <RGB b="0.00392156885936856" g="1" r="0" space="sRGB-elle-V2-g10.icc"/>
+  </ColorHistory>
+  <Palettes/>
+  <resources/>
+  <animation>
+   <framerate type="value" value="24"/>
+   <range from="0" to="100" type="timerange"/>
+   <currentTime type="value" value="0"/>
+  </animation>
+  <Annotations>
+   <Annotation description="document unique identifier" type="ai_diffusion/document_id"/>
+  </Annotations>
+ </IMAGE>
+</DOC>

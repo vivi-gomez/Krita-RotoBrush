@@ -1,0 +1,44 @@
+# Pesos de modelos: nunca
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.onnx
+models/
+
+# Compilados
+core/target/
+core/**/target/
+native/build/
+native/build-*/
+*.so
+*.so.*
+*.dll
+*.dylib
+*.o
+*.a
+
+# Dependencias locales de compilación
+.deps/
+.qt/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Entorno
+.env
+*.local
+*.log
+.wtest
+
+# Configuración de usuario
+kritarc*
+
+# Resultados de pruebas (imágenes)
+tests/results/*.png
+
+# AppImages extraídas (no se versionan)
+.appimage/
