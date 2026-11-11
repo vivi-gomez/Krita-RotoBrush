@@ -943,3 +943,47 @@ Sin código nuevo. Solo registrar.
    tiene instalado) en lugar del worker TCP propio. Ventaja probable: acceso
    a modelos/mejoras sin mantener el worker; hay que ver cómo encaja con el
    recorder y el arnés de replay.
+
+## Sesión 8 (2026-11-11 tarde): análisis de las cuatro capturas de assets
+
+Cruce capturas ↔ sesiones grabadas:
+
+| Archivo            | Sesión                | Engine | Qué es |
+|--------------------|-----------------------|--------|--------|
+| sam2.1.png         | 20261111-204736       | sam2   | chica, 2 verdes → 27,9 % (28,2 % en el pantallazo) |
+| mobile-sam.png     | 20261111-204838       | mobile | chica, 3 verdes → 27,3 % (coincide exacto) |
+| refiner.png        | 20261111-204949       | sam2   | yeti, verde+refine+rojo; máscara clavada en 47,0 % |
+| test_0.4alpha.png  | (yeti aplicado)       | sam2   | alfa aplicado de la v0.4: resultado correcto |
+
+**Calidad MobileSAM vs SAM 2.1 (la chica).** IoU entre las dos máscaras
+0,951. La diferencia es un anillo: SAM 2.1 **añade ~1,1 % de lienzo**
+(franja de ~7 px por toda la silueta: pelo, lado derecho, falda) y **pierde
+el ~0,3 % del vellosito fino** que MobileSAM conserva. Compacidad del borde
+0,72 (SAM 2.1) vs 0,78 (MobileSAM): borde más liso pero "hinchado". Causa:
+el decoder de SAM entrega el mask logit a 1/4 de resolución + nuestra
+dilatación fija de 1 px encima. Pendiente (v0.5): guided filter con la
+imagen como guía, o fusión semántica SAM 2.1 + borde MobileSAM, y replantear
+la dilatación fija.
+
+**Refine contamina (confirmado).** El repo (HEAD) sigue tratando Refine como
+verde con contexto completo: `kind in (FG, REFINE)` en compute.py. La idea
+del refine local (intersectar con el vecindario del trazo) **todavía no está
+implementada**.
+
+**El rojo no limpiaba… porque Krita aún no tiene la goma nueva.** El plugin
+instalado (`~/.local/share/krita/pykrita/roto_brush`) es el de ayer
+11:04 (v0.4, goma de banda fija de 32 px; en refiner.png el rojo solo
+arrancó un 1,4 % del yeti). La goma "cubo" por componente conexa
+(`_flood`/`_erase_component`) ya está **en el repo desde hoy 19:43**
+(commit 808bf8c) pero **nunca se instaló**: las pruebas de hoy se hicieron
+con la v0.4 vieja. Acción para la próxima: reinstalar y repetir la prueba
+del rojo; ojo, el refine seguirá contaminando hasta implementar el refine
+local.
+
+**Buena noticia (sesión 212624, yeti):** con un solo punto verde el worker
+volvió a colapsar (11,8 %) y la unión de la v0.4 lo salvó: el segundo trazo
+verde subió el resultado a 46,9 %. La acumulación funciona donde la v0.2 se
+hundía.
+
+Sesiones 055016 y 123054: documentos sueltos (arquitectónicos / Qwen), sin
+mascaras relevantes que analizar.
