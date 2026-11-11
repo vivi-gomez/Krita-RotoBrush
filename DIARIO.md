@@ -909,3 +909,10 @@ sesión del yeti el primer plano no bajó del 47,1 % ni con dos rojos largos).
 3. Bug del recorder: la sesión de la chica con refiner (11:14) quedó vacía.
 4. Revisar los vídeos de EffectCraft para el comportamiento esperado de
    Refine y Fondo.
+5. Nueva función: además de quitar el fondo, ofrecer la opción de guardar
+   solo la selección (la máscara como selección de Krita) para poder
+   interactuar con el resto de herramientas de Krita.
+6. Corregir el estado natural de Ctrl-Z: ahora no funciona, incluso cuando
+   el plugin no está activo.
+7. Comprobar si ComfyUI está operativo en el equipo; si lo está, usarlo
+   para SAM 2.1 o SAM 3 (en caso de que estén instalados).

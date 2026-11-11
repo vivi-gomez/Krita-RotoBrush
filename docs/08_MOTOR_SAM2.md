@@ -43,3 +43,9 @@ Krita (plugin Python)
 - SAM 2.1: Apache-2.0 (código y pesos, Meta AI).
 - PyTorch: BSD-3-Clause.
 - El plugin sigue siendo GPL-3.0-or-later; el worker es un proceso separado.
+
+## Pendiente: ComfyUI como runtime alternativo
+
+Comprobar si **ComfyUI** está operativo en el equipo; si lo está, evaluar
+usarlo como runtime para **SAM 2.1** o **SAM 3** (en caso de que estén
+instalados), en lugar o además del worker actual.

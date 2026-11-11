@@ -28,6 +28,9 @@ misma capa**.
 - FR5 Refinado de bordes y pelo (banda de Refine Edge).
 - FR6 Resultado en la capa original, sin capas auxiliares ni previews.
 - FR7 Ninguna ruta de usuario ni dato sensible en el repositorio.
+- FR8 (pendiente) Guardar **solo la selección** (la máscara convertida en
+  selección de Krita) para poder interactuar con el resto de herramientas de
+  Krita, además de la opción actual de quitar el fondo.
 
 ## Fuera de alcance (v1)
 

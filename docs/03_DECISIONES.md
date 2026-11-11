@@ -87,6 +87,9 @@ Hasta que exista la herramienta nativa (M3), la herramienta ofrece **Restaurar**
 y se evita ensuciar el undo cambiando a Move y consumiendo los eventos.
 **Aceptada** como limitación temporal.
 
+**Pendiente**: además, Ctrl-Z no funciona ni siquiera cuando el plugin está
+inactivo; hay que restablecer el deshacer/deseleccionar nativo de Krita.
+
 ## D-016 — Versión alpha cerrada y salto a SAM 2.1
 
 La versión con MobileSAM se cierra como **v0.1-alpha** (etiqueta `v0.1-alpha`).
