@@ -916,3 +916,30 @@ sesión del yeti el primer plano no bajó del 47,1 % ni con dos rojos largos).
    el plugin no está activo.
 7. Comprobar si ComfyUI está operativo en el equipo; si lo está, usarlo
    para SAM 2.1 o SAM 3 (en caso de que estén instalados).
+
+## Sesión 7 (2026-11-11): feedback pendiente + lista de tareas ampliada
+
+Sin código nuevo. Solo registrar.
+
+**Confirmado/estado de pendientes anteriores:**
+- Ctrl-Z: **arreglado** por el usuario; se cierra ese pendiente.
+- El refiner **sigue contaminando todo el fondo** y el modo Fondo (rojo)
+  **sigue sin limpiarla** (pendientes 1 y 2 de la sesión 6 siguen vivos).
+- La calidad del borde de MobileSAM **sigue siendo superior** a SAM 2.1
+  (pruebas de hoy sobre la chica: `refiner.jpg`, `mobile-sam.png`,
+  `sam2.1.png` — análisis de las imágenes, pendiente: hoy no se analizan).
+- El usuario ha instalado un **MCP bridge dentro de Krita** y dejó la
+  configuración de strata en `~/.config/strata/mcp_servers.json` (probe de
+  integración con el asistente; por explorar cuando toque).
+
+**NUEVAS tareas para la lista (v0.5+):**
+
+1. **Guardar solo la selección**: al aplicar la máscara, además de la opción
+   actual de quitar el fondo, dar al usuario la opción de **guardar la
+   selección** (máscara de selección de Krita) para poder interactuar con el
+   resto de herramientas de Krita (pintar dentro/fuera, filtros, etc.).
+2. **Backend ComfyUI opcional**: comprobar si ComfyUI está operativo en el
+   equipo y, si lo está, usarlo como proveedor de SAM 2.1 (o SAM 3 si lo
+   tiene instalado) en lugar del worker TCP propio. Ventaja probable: acceso
+   a modelos/mejoras sin mantener el worker; hay que ver cómo encaja con el
+   recorder y el arnés de replay.
