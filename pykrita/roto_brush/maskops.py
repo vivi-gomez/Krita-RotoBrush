@@ -46,6 +46,44 @@ def _erase_region(pts, radius, w: int, h: int) -> bytes:
     return bytes(reg)
 
 
+def _flood(seed: bytes, mask: bytes, w: int) -> bytes:
+    """Componente conexa de `mask` (4-vecindad) que toca el barrido `seed`.
+
+    Inundación a nivel de bits: la semilla se desplaza arriba, abajo, a
+    izquierda y derecha, se OR-combina y se recorta a la máscara, en bucle
+    hasta que nada crece. Las máscaras de borde de fila (como en _dilate1)
+    evitan que una fila coma a la vecina, y la cota por bit-length recorta
+    enteros para que las vueltas sean las del diámetro de la componente.
+    Con esto, un trazo rojo que roza la mejilla se lleva la mejilla ENTERA,
+    no una banda de 32 px."""
+    if len(seed) != len(mask):
+        raise ValueError(f"alfas de tamaños distintos: {len(seed)} y {len(mask)}")
+    n = len(mask)
+    m_int = int.from_bytes(mask, "little")
+    x = int.from_bytes(seed, "little") & m_int
+    if not x:
+        return b"\x00" * n
+    not_last = int.from_bytes((bytes([255] * (w - 1) + [0])) * (n // w), "little")
+    not_first = int.from_bytes((bytes([0]) + bytes([255] * (w - 1))) * (n // w), "little")
+    one, rw = 8, w * 8
+    while True:
+        cap = (1 << min(n * 8, x.bit_length() + rw + one)) - 1
+        grow = x | ((x & not_last) << one) | ((x & not_first) >> one)
+        grow |= ((x << rw) | (x >> rw)) & cap
+        grow &= m_int
+        if grow == x:
+            return x.to_bytes(n, "little")
+        x = grow
+
+
+def _erase_component(mask: bytes, pts, radius, w: int, h: int) -> bytes:
+    """Goma con semántica de cubo: quita de la máscara la componente conexa
+    que toca el barrido del trazo (y solo esa)."""
+    reg = _erase_region(pts, radius, w, h)
+    comp = _flood(reg, mask, w)
+    return _subtract(mask, comp)
+
+
 def _dilate1(a: bytes, w: int) -> bytes:
     """Dilata 1 px con vecindad completa (caja 3x3) un alfa binario (0 o 255),
     a nivel de bits.

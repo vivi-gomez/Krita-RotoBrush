@@ -8,7 +8,7 @@ from krita import Krita
 
 from . import canvas, log
 from . import sam2_client
-from .maskops import _dilate1, _erase_region, _merge, _subtract
+from .maskops import _dilate1, _erase_component, _merge
 from .engine import FG, MODEL, Engine, Params, BG, REFINE, REFINE_ERASE
 from .qt import QtCore, QtGui, QtWidgets, pyqtSignal
 
@@ -182,10 +182,12 @@ class ComputeOps:
                     acc = mask if acc is None else _merge(acc, mask, True)
                 elif kind in (BG, REFINE_ERASE):
                     # SAM no sabe "quitar una zona": con puntos negativos
-                    # devuelve solo un fragmento. La goma resta el barrido.
+                    # devuelve solo un fragmento. La goma funciona como el
+                    # cubo: se va la componente conexa ENTERA que toca el
+                    # barrido del trazo, no una banda fija de 32 px.
                     if acc is None:
                         continue
-                    acc = _subtract(acc, _erase_region(pts, radius, w, h))
+                    acc = _erase_component(acc, pts, radius, w, h)
             if acc is None:
                 raise RuntimeError("hace falta al menos un trazo verde")
             fg = sum(1 for a in acc if a > 127) * 100.0 / len(acc)

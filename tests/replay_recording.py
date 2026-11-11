@@ -172,11 +172,11 @@ def main() -> int:
             alpha = sam2_client.segment(raw, w, h, list(green_pts))
             mk = np.frombuffer(alpha, dtype=np.uint8).reshape(-1) > 127
             acc |= mk
-        elif kind in (1, 3) and pts and acc.any():  # goma: resta el barrido
-            reg = np.frombuffer(
-                maskops._erase_region(pts, radius, w, h), np.uint8
+        elif kind in (1, 3) and pts and acc.any():  # goma: cubo por componente
+            mask = (acc.reshape(-1) * 255).astype(np.uint8).tobytes()
+            acc = np.frombuffer(
+                maskops._erase_component(mask, pts, radius, w, h), np.uint8
             ) > 127
-            acc &= ~reg
         fg = acc.mean() * 100.0
         iou = float("nan")
         if ref is not None:
