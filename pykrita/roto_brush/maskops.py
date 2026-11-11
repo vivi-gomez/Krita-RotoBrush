@@ -59,6 +59,8 @@ def _flood(seed: bytes, mask: bytes, w: int) -> bytes:
     if len(seed) != len(mask):
         raise ValueError(f"alfas de tamaños distintos: {len(seed)} y {len(mask)}")
     n = len(mask)
+    if n % w:
+        raise ValueError(f"alfas de {n} bytes que no caben en filas de {w} px")
     m_int = int.from_bytes(mask, "little")
     x = int.from_bytes(seed, "little") & m_int
     if not x:

@@ -75,6 +75,12 @@ def main() -> int:
     got = maskops._flood(cells([(3, 0)], w, h), m, w)  # semilla sobre hueco
     ok &= check("semilla fuera de la máscara no inunda nada", got.count(ON) == 0)
 
+    try:
+        maskops._flood(b"\xff" * 7, b"\xff" * 7, 4)  # 7 no cabe en filas de 4
+        ok &= check("rechaza máscaras que no caben en filas enteras", False)
+    except ValueError:
+        ok &= check("rechaza máscaras que no caben en filas enteras", True)
+
     print("_erase_component (goma tipo cubo):")
     # Rejilla de 60x60 con dos componentes alejadas (el barrido mínimo de la
     # goma tiene radio 16 px): se va la tocada y la otra debe quedar intacta.
@@ -94,8 +100,8 @@ def main() -> int:
         and left == 36,
     )
 
-    # Trazo rojo que roza una mancha: el barrido llega justo a su borde y
-    # la mancha se va ENTERA aunque el rojo no la cruce (queja 3).
+    # Trazo rojo que toca el borde de una mancha (el barrido tiene radio 16
+    # y solapa unos píxeles): la mancha debe irse ENTERA (queja 3).
     rows = [["."] * 40 for _ in range(20)]
     for y in range(6, 14):           # mancha de 8x8 en x=20..27
         for x in range(20, 28):
