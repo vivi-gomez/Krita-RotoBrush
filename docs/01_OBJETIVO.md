@@ -31,6 +31,11 @@ misma capa**.
 - FR8 (pendiente) Guardar **solo la selección** (la máscara convertida en
   selección de Krita) para poder interactuar con el resto de herramientas de
   Krita, además de la opción actual de quitar el fondo.
+- FR9 (pendiente) Soportar **formatos de capa distintos de RGBA de 8 bits**
+  (empezar por RGBA U16): hoy `compute.py` rechaza cualquier otra profundidad/
+  modelo con «capa no soportada: RGBA U16 (usa RGBA de 8 bits)». Implica
+  adaptar la lectura de píxeles (`pixelData` → bytes) en `compute.py`, el
+  worker SAM 2.1 y el recorder, que asumen 4 bytes por píxel a 8 bits.
 
 ## Fuera de alcance (v1)
 

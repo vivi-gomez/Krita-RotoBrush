@@ -987,3 +987,16 @@ hundía.
 
 Sesiones 055016 y 123054: documentos sueltos (arquitectónicos / Qwen), sin
 mascaras relevantes que analizar.
+
+## Pendiente: compatibilidad de formatos de capa (RGBA U16)
+
+El plugin rechaza hoy cualquier capa que no sea `RGBA` de 8 bits (`U8`): en
+`compute.py:66-69` se comprueba `depth != "U8" or model_cs != "RGBA"` y se
+emite «capa no soportada: RGBA U16 (usa RGBA de 8 bits)». Un usuario con un
+documento de 16 bits no puede usar la herramienta.
+
+Pendiente: hacer compatible el plugin con más formatos (empezar por
+**RGBA U16**; valorar también `GRAYA`/otros modelos y profundidades). Implica
+revisar el camino de datos de `compute.py` (`pixelData` → bytes → motor), el
+worker SAM 2.1 y el recorder, que hoy asumen 4 bytes por píxel (B/G/R/A a 8
+bits).

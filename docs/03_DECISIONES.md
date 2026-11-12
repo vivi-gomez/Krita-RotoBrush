@@ -90,6 +90,14 @@ y se evita ensuciar el undo cambiando a Move y consumiendo los eventos.
 **Pendiente**: además, Ctrl-Z no funciona ni siquiera cuando el plugin está
 inactivo; hay que restablecer el deshacer/deseleccionar nativo de Krita.
 
+**Confirmado por el usuario (2026-11-12):** el **Undo nativo de Krita
+(Ctrl+Z) ha dejado de funcionar por culpa del plugin**, incluso con el plugin
+inactivo. Prioridad alta: es una regresión que afecta a todo el trabajo en
+Krita, no solo a la herramienta. Causa probable: el plugin instala un atajo
+propio o consume los eventos de teclado/undo (ver `compute._remove_undo_shortcut`
+y `controller.py`); hay que restablecer el comportamiento nativo de Krita y
+dejar de tocar el deshacer global.
+
 ## D-016 — Versión alpha cerrada y salto a SAM 2.1
 
 La versión con MobileSAM se cierra como **v0.1-alpha** (etiqueta `v0.1-alpha`).
