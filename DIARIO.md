@@ -1099,3 +1099,16 @@ kritarc limpio). Probado de verdad: desinstalar → crítico de que no queda nad
 0,703 → **0,970** (verde bueno) → 0,941 (refine), idéntico a lo medido antes de
 tocar nada. Suite completa en verde (maskops, accumulate, recorder,
 import harness, capture).
+
+**Falsa alarma y apéndice de la revisión.** El log de Krita se llena también
+cuando corren las pruebas (comparten fichero de log): los `ERROR notifier` y
+`ERROR overlay: not enough values to unpack` del 12-11 por la tarde venían del
+`test_recorder` con un `source` de 3 campos, no de Krita (la última sesión real
+era de las 11:01). Aun así arregla el ruido: el Krita de mentira del test ya
+tiene `notifier()`, y el log pasa de 28 errores a cero desde las pruebas.
+Comprobado que **no queda ningún sitio que desempaquete `source` a 3 campos**
+(recorder, compute ×2 y edits usan los 4).
+
+**No se ha podido lanzar Krita sin pantalla** para validar la carga del plugin:
+la AppImage solo trae el plugin de ventana `xcb`, el `offscreen` del sistema no
+lo acepta Qt y no hay Xvfb instalada. Queda la comprobación manual en Krita.

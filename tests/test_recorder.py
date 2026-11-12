@@ -44,6 +44,22 @@ class Extension:
         pass
 
 
+class _Signal:
+    def connect(self, fn):  # noqa: ARG002
+        pass
+
+
+class _Notifier:
+    """Krita.instance().notifier() de mentira: sin esto, cada conexión suelta
+    un error que en el log parece un fallo real del plugin."""
+
+    imageCreated = _Signal()
+    imageClosed = _Signal()
+    viewCreated = _Signal()
+    viewClosed = _Signal()
+    windowCreated = _Signal()
+
+
 class _Instance:
     def addDockWidgetFactory(self, f):  # noqa: N802
         pass
@@ -53,6 +69,9 @@ class _Instance:
 
     def activeDocument(self):  # noqa: N802
         return None
+
+    def notifier(self):
+        return _Notifier()
 
 
 class Krita:
