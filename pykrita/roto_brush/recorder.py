@@ -16,11 +16,18 @@ del usuario contra SAM 2.1 y compararlos con la referencia de EffectCraft.
 import json
 import os
 import time
+
+try:
+    from .maskops import _to_rgba8
+except ImportError:
+    from maskops import _to_rgba8
 from pathlib import Path
 
 from . import log
 
 _MARK = Path.home() / ".local" / "share" / "krita" / "roto_brush_record"
+
+_MAX_PIXELS = 40_000_000  # 40 Mpx: volcar una capa más grande cuesta demasiado
 
 
 def enabled() -> bool:
@@ -34,6 +41,7 @@ class Recorder:
         self.dir = None
         self.meta = {}
         self._img_saved = False
+        self._last_note = None
 
     # -- infraestructura ------------------------------------------------
 
@@ -74,6 +82,7 @@ class Recorder:
         """Al activar la captura: sesión nueva (la anterior queda cerrada)."""
         self.dir = None
         self._img_saved = False
+        self._last_note = None
         if not enabled():
             return
         try:
@@ -135,19 +144,29 @@ class Recorder:
             b = node.bounds()
             self.meta["layer"] = node.name()
             self.meta["layer_kind"] = node.type()
+            self.meta["layer_format"] = f"{node.colorModel()} {node.colorDepth()}"
             self.meta["layer_bounds"] = [b.x(), b.y(), b.width(), b.height()]
             self._write_meta()
         except Exception:  # noqa: BLE001
             pass
 
     def image(self, c) -> None:
-        """Vuelca los píxeles originales de la capa una sola vez por sesión."""
+        """Vuelca los píxeles originales de la capa una sola vez por sesión.
+
+        No depende del cálculo: si el usuario pintó pero `compute` no llegó a
+        guardar `source` (capa no soportada, error del motor…), el recorder la
+        captura por su cuenta. Sin layer.bgra la sesión no se puede reproducir
+        fuera de Krita y la grabación no sirve para nada."""
         if self.dir is None or self._img_saved:
             return
         try:
-            if c.source is None:
-                return
-            _node_id, rect, px = c.source
+            if c.source is not None:
+                _node_id, rect, px, _orig = c.source
+            else:
+                grabbed = self._grab(c)
+                if grabbed is None:
+                    return
+                rect, px = grabbed
             (self.dir / "layer.bgra").write_bytes(px)
             self.meta["rect"] = list(rect)
             self.meta["image"] = {"w": rect[2], "h": rect[3], "bytes": len(px)}
@@ -156,6 +175,31 @@ class Recorder:
             self._event({"ev": "image", "rect": list(rect)})
         except Exception as e:  # noqa: BLE001
             log.error(f"recorder imagen: {e!r}")
+
+    def _grab(self, c):
+        """Captura la capa activa sin pasar por compute.
+
+        Vuelca SIEMPRE 8 bits: si la capa es de 16, baja cada canal a su byte
+        alto (es lo que ve el motor). Hay límite de píxeles, y si algo no cabe
+        queda escrito en el log por qué la grabación no es reproducible."""
+        try:
+            node = c.document.activeNode()
+        except Exception:  # noqa: BLE001
+            return None
+        if node is None:
+            return None
+        model_cs, depth = node.colorModel(), node.colorDepth()
+        if model_cs != "RGBA" or depth not in ("U8", "U16"):
+            log.info(f"recorder: capa {model_cs} {depth} sin volcar")
+            return None
+        b = node.bounds()
+        rect = (b.x(), b.y(), b.width(), b.height())
+        if rect[2] * rect[3] > _MAX_PIXELS:
+            log.info(f"recorder: capa de {rect[2]}x{rect[3]} demasiado grande")
+            return None
+        raw = bytes(node.pixelData(*rect))
+        bpc = 2 if depth == "U16" else 1
+        return rect, _to_rgba8(raw, bpc)
 
     def stroke(self, c) -> None:
         """Un trazo recién terminado: se guarda la lista COMPLETA de trazos."""
@@ -188,6 +232,11 @@ class Recorder:
             pass
 
     def note(self, text: str) -> None:
-        if self.dir is None:
+        """Anota un suelto, sin repetir la nota anterior.
+
+        Un aviso de Krita escuchado dos veces llenó una grabación con 31.000
+        líneas idénticas; la repetición no aporta nada y tapaba los trazos."""
+        if self.dir is None or text == self._last_note:
             return
+        self._last_note = text
         self._event({"ev": "note", "text": text})

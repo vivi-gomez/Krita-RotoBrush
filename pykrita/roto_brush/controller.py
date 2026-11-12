@@ -60,7 +60,8 @@ class Controller(StrokeEdits, ComputeOps, Diagnostics, QObject):
         self.capture = canvas.Capture(self)
         self.recorder = Recorder()
         self.overlay = None
-        self.source = None  # (node_id, rect, rgba original)
+        self.source = None  # (node_id, rect, rgba8 para el motor, rgba nativo)
+        self.bpc = 1  # bytes por canal de la capa: 1 (U8) o 2 (U16)
         self._doc_key = None
         self._source_node = None
         self.mask = None
@@ -71,6 +72,7 @@ class Controller(StrokeEdits, ComputeOps, Diagnostics, QObject):
         self.auto_preview = True
         self._doc = None
         self._saved_tool = None
+        self._notifier_on = False
         self._connect_notifier()
         self._bad_points = 0
         self._undo_qaction = None
@@ -207,18 +209,21 @@ class Controller(StrokeEdits, ComputeOps, Diagnostics, QObject):
             return True
 
     def _restore_tool(self) -> None:
+        """Devuelve Krita a su estado "normal" de herramienta.
+
+        OJO: aquí NO se tocan los campos del atajo Ctrl+Z. Los guarda
+        `_install_undo_shortcut` y los devuelve `_remove_undo_shortcut`, y si
+        aquí los borrábamos antes de tiempo, el atajo nativo de Krita se
+        quedaba vacío para toda la sesión: Ctrl+Z muerto aunque el plugin
+        estuviera desactivado. Tampoco reconecta el notifier: ya está
+        conectado al arrancar, y conectarlo otra vez duplica los avisos."""
         if self._saved_tool is not None:
             try:
                 self._saved_tool.trigger()
             except Exception:  # noqa: BLE001
                 pass
             self._saved_tool = None
-        self._connect_notifier()
         self._bad_points = 0
-        self._undo_qaction = None
-        self._undo_krita = None
-        self._undo_shortcuts = None
-        self._undo_ctx = None
         self.undo_stack = []
 
     def _make_overlay(self):

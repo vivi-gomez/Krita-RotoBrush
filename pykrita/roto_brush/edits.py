@@ -15,7 +15,7 @@ class StrokeEdits:
     def undo(self) -> None:
         """Ctrl+Z dentro de la herramienta: deshace el último paso."""
         if self.applied and self.source is not None:
-            node_id, rect, orig = self.source
+            node_id, rect, _px8, orig = self.source
             node = self._source_node
             if node is not None and self._key_of(node) == node_id:
                 try:

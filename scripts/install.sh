@@ -14,7 +14,12 @@ if [ ! -f "$LIB" ]; then
 fi
 
 mkdir -p "$KB/lib"
+# Copia limpia: sin __pycache__ viejo ni módulos que ya no existen en el repo
+# (una goma antigua instalada parece "arreglada" y no lo está: sesión 8).
+rm -rf "$KB/__pycache__"
+find "$KB" -maxdepth 1 -name '*.py' -delete
 cp -r "$REPO/pykrita/roto_brush/." "$KB/"
+rm -rf "$KB/__pycache__"
 rm -f "$KB/lib/libroto_brush_core.so"
 cp "$LIB" "$KB/lib/"
 cp "$REPO/pykrita/roto_brush.desktop" "$KD"

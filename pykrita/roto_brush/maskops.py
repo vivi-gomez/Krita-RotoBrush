@@ -25,13 +25,17 @@ def _subtract(a: bytes, reg: bytes) -> bytes:
     return (x & (full ^ y)).to_bytes(len(a), "little")
 
 
-def _erase_region(pts, radius, w: int, h: int) -> bytes:
+def _erase_region(pts, radius, w: int, h: int, factor: float = 1.5, floor: int = 16) -> bytes:
     """Bytes con 255 en el barrido del trazo: la goma resta SOLO esa zona.
 
     SAM no sabe "quitar una zona": con puntos negativos devuelve solo un
     trozo del personaje y la máscara colapsaba. El borrado local es
-    predecible y no depende de la suerte de los candidatos."""
-    r = max(16, int(1.5 * float(radius)))
+    predecible y no depende de la suerte de los candidatos.
+
+    `factor` y `floor` ajustan el radio efectivo: la goma usa el barrido
+    justo (1,5 × pincel) y Refine necesita una envolvente más ancha para
+    atrapar el borde que rodea el trazo."""
+    r = max(floor, int(factor * float(radius)))
     reg = bytearray(w * h)
     for px, py in pts:
         cx, cy = int(px), int(py)
@@ -84,6 +88,69 @@ def _erase_component(mask: bytes, pts, radius, w: int, h: int) -> bytes:
     reg = _erase_region(pts, radius, w, h)
     comp = _flood(reg, mask, w)
     return _subtract(mask, comp)
+
+
+def _neighborhood(pts, radius, w: int, h: int) -> bytes:
+    """Envolvente barrida por un trazo Refine: la única zona donde su
+    resultado puede entrar en la máscara.
+
+    Es más ancha que la goma (2,5 × pincel, mínimo 40 px) porque Refine
+    pide justo el borde de lo pintado, y el borde vivo queda fuera del
+    trazo."""
+    return _erase_region(pts, radius, w, h, factor=2.5, floor=40)
+
+
+def _refine_local(mask: bytes, fresh: bytes, pts, radius, w: int, h: int) -> bytes:
+    """Refine local: de lo que SAM proponga para este trazo solo se acepta lo
+    que cae en su vecindario, y eso se UNE a la máscara.
+
+    Con el contexto global Refine contaminaba todo el fondo: SAM elegía otro
+    candidato y la unión pegaba la basura. Recortado al vecindario del trazo,
+    Refine solo puede ensanchar el borde que el usuario está señalando."""
+    return _merge(mask, _merge(fresh, _neighborhood(pts, radius, w, h), False), True)
+
+
+def _scale_alpha(orig: bytes, alpha: bytes, w: int, h: int, bpc: int = 1) -> bytes:
+    """Multiplica el canal alfa de la capa por la máscara (0..255).
+
+    `bpc` son los bytes por canal: 1 en RGBA U8 y 2 en RGBA U16. Con 16 bits
+    trabaja sobre `array('H')`, que usa el orden de bytes de la máquina, el
+    mismo que devuelve `node.pixelData()`. Lo que entra y lo que sale tiene la
+    misma longitud: solo cambian los alfas, el color no se toca."""
+    n = w * h
+    if len(alpha) != n:
+        raise ValueError(f"la máscara no cuadra: {len(alpha)} != {n}")
+    if len(orig) != n * 4 * bpc:
+        raise ValueError(f"la capa no cuadra: {len(orig)} != {n * 4 * bpc}")
+    if bpc == 1:
+        out = bytearray(orig)
+        for i in range(n):
+            a = out[i * 4 + 3]
+            if a and alpha[i] != 255:
+                out[i * 4 + 3] = (a * alpha[i]) // 255
+        return bytes(out)
+    if bpc != 2:
+        raise ValueError(f"profundidad desconocida: {bpc} bytes por canal")
+    import array
+
+    vals = array.array("H")
+    vals.frombytes(orig)
+    ch = vals[3::4]
+    for i in range(n):
+        m = alpha[i]
+        if m != 255:
+            ch[i] = (ch[i] * m) // 255
+    vals[3::4] = ch
+    return vals.tobytes()
+
+
+def _to_rgba8(px: bytes, bpc: int) -> bytes:
+    """Baja una capa RGBA de 16 bits a 8 bits tomando el byte alto de cada
+    canal. Sirve para el MOTOR (SAM solo quiere ver la foto); para escribir en
+    la capa se usa _scale_alpha, que respeta los 16 bits."""
+    if bpc == 1:
+        return px
+    return px[bpc - 1::bpc]
 
 
 def _dilate1(a: bytes, w: int) -> bytes:

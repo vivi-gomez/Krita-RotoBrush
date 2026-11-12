@@ -172,6 +172,11 @@ class Capture(QObject):
         self.active = False
         self.target = None
         self.space_down = False
+        # Con tableta, Qt manda el MISMO gesto dos veces (TabletPress y luego
+        # su eco de ratón). Sin esta bandera cada pincelada dejaba un trazo
+        # fantasma de 1 punto antes del bueno, y ese punto solo bastaba para
+        # que el segmento se quedara a medias (sesión 9).
+        self._stroke_open = False
 
     def start(self) -> bool:
         self.target = find_canvas_widget(self.c.window)
@@ -187,6 +192,7 @@ class Capture(QObject):
 
     def stop(self) -> None:
         self.active = False
+        self._stroke_open = False
         try:
             if self.target is not None:
                 self.target.setMouseTracking(getattr(self, "_prev_tracking", False))
@@ -261,10 +267,13 @@ class Capture(QObject):
         img = widget_to_image(self.c.view, pos, size)
         t = ev.type()
         if t in PRESS or t in TABLET_PRESS:
+            if self._stroke_open:
+                return False  # eco de tableta/ratón del mismo gesto
             if not self._left_or_tablet(ev, t):
                 return False
             if not self.c.tool_is_neutral():
                 return False
+            self._stroke_open = True
             self.c.set_hover(pos)
             self.c.begin_stroke(img)
             return True
@@ -277,6 +286,9 @@ class Capture(QObject):
                 return True
             return False
         if t in RELEASE or t in TABLET_RELEASE:
+            if not self._stroke_open:
+                return False  # el final ya lo dio el otro evento del gesto
+            self._stroke_open = False
             if not self.c.tool_is_neutral():
                 return False
             self.c.end_stroke()

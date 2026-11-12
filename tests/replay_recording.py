@@ -36,6 +36,17 @@ _spec2 = importlib.util.spec_from_file_location(
 )
 maskops = importlib.util.module_from_spec(_spec2)
 _spec2.loader.exec_module(maskops)
+sys.modules["maskops"] = maskops  # para que accumulate lo encuentre
+
+# accumulate: EL criterio de acumulación del plugin (verde UNE, refine
+# recortado a su vecindario, rojo quita la componente conexa). El arnés no
+# reimplementa nada: si esto pasa y en Krita falla, el fallo es de Krita.
+sys.path.insert(0, str(ROOT / "pykrita" / "roto_brush"))
+_spec3 = importlib.util.spec_from_file_location(
+    "accumulate", ROOT / "pykrita" / "roto_brush" / "accumulate.py"
+)
+accumulate = importlib.util.module_from_spec(_spec3)
+_spec3.loader.exec_module(accumulate)
 
 
 def latest_session():
@@ -163,20 +174,15 @@ def main() -> int:
 
     print(f"{'trazo':>6} {'accion':>7} {'primer plano':>13} {'IoU ref':>9}")
     local = to_layer(strokes, rect)
-    acc = np.zeros(w * h, dtype=bool)
-    green_pts = []
     kinds = {0: "verde", 1: "rojo", 2: "refine", 3: "borra"}
-    for i, (kind, radius, pts, _f) in enumerate(local, start=1):
-        if kind in (0, 2) and pts:  # FG / REFINE: UNE, con el contexto entero
-            green_pts.extend(sample(pts, 1))
-            alpha = sam2_client.segment(raw, w, h, list(green_pts))
-            mk = np.frombuffer(alpha, dtype=np.uint8).reshape(-1) > 127
-            acc |= mk
-        elif kind in (1, 3) and pts and acc.any():  # goma: cubo por componente
-            mask = (acc.reshape(-1) * 255).astype(np.uint8).tobytes()
-            acc = np.frombuffer(
-                maskops._erase_component(mask, pts, radius, w, h), np.uint8
-            ) > 127
+    for i in range(1, len(local) + 1):
+        # Cada prefijo (1, 1+2, 1+2+3…) pasa por accumulate.accumulate, la
+        # MISMA función del plugin: si aquí sube y en Krita baja, el problema
+        # no es del criterio de acumulación.
+        acc_bytes, calls = accumulate.accumulate(
+            local[:i], w, h, lambda pts: sam2_client.segment(raw, w, h, pts)
+        )
+        acc = np.frombuffer(acc_bytes, dtype=np.uint8) > 127
         fg = acc.mean() * 100.0
         iou = float("nan")
         if ref is not None:
@@ -188,7 +194,8 @@ def main() -> int:
         mask_img.save(out / f"mascara_{i}.png")
         shaded = Image.composite(rgb, Image.new("RGB", (w, h), (30, 30, 30)), mask_img)
         shaded.save(out / f"vista_{i}.png")
-        print(f"{i:>6} {kinds.get(kind, '?'):>7} {fg:>12.1f} % {iou:>9.3f}")
+        kind = local[i - 1][0]
+        print(f"{i:>6} {kinds.get(kind, '?'):>7} {fg:>12.1f} % {iou:>9.3f}  ({calls} sam)")
     print(f"\nmáscaras y vistas en {out}")
     return 0
 

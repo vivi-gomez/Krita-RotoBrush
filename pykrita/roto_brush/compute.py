@@ -6,9 +6,9 @@ import time
 
 from krita import Krita
 
-from . import canvas, log
+from . import accumulate, canvas, log
 from . import sam2_client
-from .maskops import _dilate1, _erase_component, _merge
+from .maskops import _dilate1, _scale_alpha, _to_rgba8
 from .engine import FG, MODEL, Engine, Params, BG, REFINE, REFINE_ERASE
 from .qt import QtCore, QtGui, QtWidgets, pyqtSignal
 
@@ -64,9 +64,10 @@ class ComputeOps:
             self.status.emit("la capa activa no es de pintura")
             return
         depth, model_cs = node.colorDepth(), node.colorModel()
-        if depth != "U8" or model_cs != "RGBA":
-            self.status.emit(f"capa no soportada: {model_cs} {depth} (usa RGBA de 8 bits)")
+        if model_cs != "RGBA" or depth not in ("U8", "U16"):
+            self.status.emit(f"capa no soportada: {model_cs} {depth} (usa RGBA de 8 o 16 bits)")
             return
+        bpc = 2 if depth == "U16" else 1  # bytes por canal
         bounds = node.bounds()
         if bounds.isEmpty():
             self.status.emit("la capa está vacía")
@@ -76,10 +77,14 @@ class ComputeOps:
             # El área se fija una vez: tras aplicar, node.bounds() se encoge y
             # recalcular con ella desalinearía la máscara.
             rect = (bounds.x(), bounds.y(), bounds.width(), bounds.height())
-            px = bytes(node.pixelData(*rect))
-            self.source = (node_id, rect, px)
+            orig = bytes(node.pixelData(*rect))
+            # SAM solo necesita VER la imagen: con 16 bits se la pasamos
+            # reducida a 8. Escribir en la capa sigue siendo a 16 bits.
+            px8 = _to_rgba8(orig, bpc)
+            self.source = (node_id, rect, px8, orig)
+            self.bpc = bpc
             self._source_node = node
-            log.info(f"origen capturado: {rect[2]}x{rect[3]}")
+            log.info(f"origen capturado: {rect[2]}x{rect[3]} {depth}")
             self.recorder.layer_info(self)
             self.recorder.image(self)
         rect = self.source[1]
@@ -139,57 +144,22 @@ class ComputeOps:
         """Puntos para SAM 2.1 (sin caja: el worker elige el mayor candidato)."""
         pts = []
         for kind, _r, points, _f in strokes:
-            if kind not in (0, 1):
+            if kind not in (0, 1) or not points:
                 continue
-            label = 1 if kind == 0 else 0
-            n = len(points)
-            step = max(1, n // 12)
-            chosen = points[::step]
-            if chosen[-1] != points[-1]:
-                chosen.append(points[-1])
-            for pair in chosen:
-                pts.append([round(pair[0], 1), round(pair[1], 1), label])
+            pts.extend(accumulate.sample(points, 1 if kind == 0 else 0))
         return pts, None
 
-    @staticmethod
-    def _sample(points, label, cap: int = 12):
-        """Muestrea ~`cap` puntos de un trazo y los marca con `label`."""
-        step = max(1, len(points) // cap)
-        chosen = points[::step]
-        if chosen[-1] != points[-1]:
-            chosen.append(points[-1])
-        return [[round(p[0], 1), round(p[1], 1), label] for p in chosen]
-
     def _work_sam2(self, px, rect, strokes, node):
-        """Acumula de verdad: cada trazo verde UNE su máscara al resultado y
-        cada rojo resta SOLO su zona barrida. El alfa del worker llega en
-        0 o 255, así que unir e intersecar son un OR y un AND de bits."""
+        """Acumula de verdad: cada trazo verde UNE su máscara al resultado,
+        Refine solo ensancha su vecindario y cada rojo quita la componente
+        conexa que toca su barrida. El criterio vive en accumulate.py, que es
+        el mismo que ejercita tests/replay_recording.py."""
         t0 = time.time()
         try:
-            acc = None
-            green_pts = []
-            calls = 0
             w, h = rect[2], rect[3]
-            for kind, radius, pts, _f in strokes:
-                if not pts:
-                    continue
-                if kind in (FG, REFINE):
-                    # Contexto completo: TODOS los puntos verdes hasta el trazo
-                    # actual; si algún cálculo colapsa, la unión no lo pierde.
-                    green_pts.extend(self._sample(pts, 1))
-                    mask = sam2_client.segment(px, w, h, list(green_pts))
-                    calls += 1
-                    acc = mask if acc is None else _merge(acc, mask, True)
-                elif kind in (BG, REFINE_ERASE):
-                    # SAM no sabe "quitar una zona": con puntos negativos
-                    # devuelve solo un fragmento. La goma funciona como el
-                    # cubo: se va la componente conexa ENTERA que toca el
-                    # barrido del trazo, no una banda fija de 32 px.
-                    if acc is None:
-                        continue
-                    acc = _erase_component(acc, pts, radius, w, h)
-            if acc is None:
-                raise RuntimeError("hace falta al menos un trazo verde")
+            acc, calls = accumulate.accumulate(
+                strokes, w, h, lambda pts: sam2_client.segment(px, w, h, pts)
+            )
             fg = sum(1 for a in acc if a > 127) * 100.0 / len(acc)
             log.info(
                 f"SAM 2.1 acumulado: {w}x{h} en {time.time() - t0:.2f} s, "
@@ -247,7 +217,7 @@ class ComputeOps:
             self.status.emit("calcula primero la máscara")
             return
         alpha, mrect = self.mask
-        node_id, rect, orig = self.source
+        node_id, rect, _px8, orig = self.source
         if mrect != rect:
             self.status.emit("la máscara no coincide con la capa: recalcula")
             return
@@ -256,11 +226,8 @@ class ComputeOps:
             self.status.emit("la capa cambió: no puedo aplicar")
             return
         x, y, w, h = rect
-        out = bytearray(orig)
-        for i in range(w * h):
-            a = out[i * 4 + 3]
-            if a:
-                out[i * 4 + 3] = (a * alpha[i]) // 255
+        bpc = getattr(self, "bpc", 1)
+        out = _scale_alpha(orig, bytes(alpha), w, h, bpc)
         self._snapshot()
         try:
             node.setPixelData(bytes(out), x, y, w, h)
@@ -273,7 +240,15 @@ class ComputeOps:
             self.computed_strokes = 0
             self.selected = None
             self._refresh()
-            fg = sum(1 for i in range(w * h) if out[i * 4 + 3] > 127)
+            tope = 32768 if bpc == 2 else 128
+            paso = 4 * bpc
+            fg = sum(
+                1
+                for i in range(w * h)
+                if int.from_bytes(
+                    out[i * paso + 3 * bpc: i * paso + 3 * bpc + bpc], "little"
+                ) >= tope
+            )
             log.info(f"aplicado: primer plano {fg * 100.0 / (w * h):.1f} %")
             self.status.emit("aplicado en la capa · Restaurar lo deshace")
         except Exception as e:  # noqa: BLE001
@@ -283,7 +258,7 @@ class ComputeOps:
     def restore(self) -> None:
         """Devuelve la capa a su estado original y reinicia los trazos."""
         if self.source is not None:
-            node_id, rect, orig = self.source
+            node_id, rect, _px8, orig = self.source
             node = self._source_node
             if node is not None and self._key_of(node) == node_id:
                 try:
@@ -341,13 +316,20 @@ class ComputeOps:
             log.error(f"watch: {e!r}")
 
     def _connect_notifier(self) -> None:
-        """Krita avisa al abrir/cerrar imágenes: se limpia la herramienta."""
+        """Krita avisa al abrir/cerrar imágenes: se limpia la herramienta.
+
+        Una sola vez: cada `connect` suma un oyente y, como el aviso se
+        dispara también al cambiar de documento, los oyentes se multiplicaban
+        (en el log: 14.820 reconexiones y 31.000 notas repetidas)."""
+        if getattr(self, "_notifier_on", False):
+            return
         try:
             n = Krita.instance().notifier()
             for name in ("imageCreated", "imageClosed", "viewCreated", "viewClosed", "windowCreated"):
                 sig = getattr(n, name, None)
                 if sig is not None:
                     sig.connect(self._on_image_event)
+            self._notifier_on = True
             log.info("notifier conectado")
         except Exception as e:  # noqa: BLE001
             log.error(f"notifier: {e!r}")

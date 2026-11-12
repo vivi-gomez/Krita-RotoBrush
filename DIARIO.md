@@ -1000,3 +1000,59 @@ Pendiente: hacer compatible el plugin con más formatos (empezar por
 revisar el camino de datos de `compute.py` (`pixelData` → bytes → motor), el
 worker SAM 2.1 y el recorder, que hoy asumen 4 bytes por píxel (B/G/R/A a 8
 bits).
+
+## Sesión 9 (2026-11-12 tarde): v0.5-alpha-refine-local
+
+Versión que se deja atrás: **v0.4-alpha-acumulacion** (etiqueta en git y copia
+`Krita-RotoBrush-BACKUP-v0.4-alpha-acumulacion-20261112-143942.tar.gz`).
+Versión a la que se avanza: **v0.5-alpha-refine-local**.
+
+**Causa del trazo fantasma (esto era lo gordo).** En la grabación del yeti hay
+**6 trazos cuando el usuario pintó 3**: `verde(1 punto) + verde(492 puntos)`,
+`refine(1) + refine(197)`, `rojo(1) + rojo(483)`. Con tableta, Qt entrega el
+mismo gesto dos veces (`TabletPress` y su eco de ratón) y `canvas.Capture`
+respondía a los dos: el primero abría un trazo de un solo punto que se quedaba
+ahí. Ese punto solo ya sabemos lo que hace —el worker colapsa y da el 11,8 %—
+y encima era el primer cálculo de cada gesto. Sellado con `Capture._stroke_open`:
+el segundo `press` de un mismo gesto se ignora y el `release` solo cierra una vez.
+
+**Refine local (el pendiente de la sesión 8).** Nuevo módulo `accumulate.py` con
+las reglas en un solo sitio, y el arnés `tests/replay_recording.py` llama a ESA
+misma función: lo que se mide fuera de Krita es lo que hace el plugin. Reglas:
+el verde UNE con todo el contexto; el refine calcula SOLO con sus puntos y su
+resultado se recorta a su vecindario (`_refine_local`); el rojo se lleva la
+componente conexa. Medido sobre la grabación real del yeti (SAM 2.1, worker en
+CPU porque la GPU estaba ocupada con el entrenamiento):
+
+| momento | primer plano | IoU contra EffectCraft |
+|---|---|---|
+| un solo verde bueno | 46,1 % | **0,970** |
+| tras el refine del usuario | 47,5 % | 0,941 |
+| píxeles cambiados fuera del vecindario del refine | **0** | — |
+
+Antes el refine repartía basura por todo el fondo; ahora su daño máximo es el
+área barrida (37 794 px en esta sesión) y se deshace con Ctrl+Z. Sigue sin ser
+una ganancia: cuando SAM se equivoca en el borde señalizado, el refine empeora
+el número (0,970 → 0,941). Anotado para la sesión 10: valorar que el refine
+**reemplace** dentro del vecindario en lugar de sumar.
+
+**El rojo no tenía nada que borrar.** El barrido del trazo rojo (59 881 px) no
+pisa ni un píxel de máscara en esa sesión: con la máscara buena (0,970) ya no
+quedaba mancha ahí. Habrá que probarlo sobre una máscara sí contaminada.
+
+**Goma persistente.** Lo quitado con rojo ya no resucita cuando se pinta el
+siguiente verde, salvo que se pinte ENCIMA de lo borrado. `tests/test_accumulate.py`
+lo cubre con un SAM de mentira (5 casos, sin GPU).
+
+**Ctrl+Z yNotifier.** `_restore_tool` ya no rompe los atajos nativos de deshacer
+de Krita, y el notifier se conecta una sola vez (14 820 líneas de log y 31 104
+eventos duplicados menos).
+
+**Capas de 16 bits (FR9).** `compute` acepta RGBA U8 **y U16**: al motor se le
+pasa la imagen bajada al byte alto de cada canal (`_to_rgba8`), y al aplicar se
+multiplica el alfa en 16 bits (`_scale_alpha`), sin tocar el color. Probado con
+datos sintéticos en `tests/test_maskops.py`; **falta la prueba en Krita con un
+documento de 16 bits**.
+
+**Instalación.** `scripts/install.sh` limpia `__pycache__` y los `.py` viejos
+antes de copiar: la goma nueva existía en el repo pero nunca llegó a Krita.

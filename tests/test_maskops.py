@@ -111,6 +111,42 @@ def main() -> int:
     got = maskops._erase_component(m, pts, 8, w, h)  # radio 8 -> toca x>=12
     ok &= check("rozar la mancha la borra completa", got.count(ON) == 0)
 
+    print("_scale_alpha y _to_rgba8 (capas de 8 y 16 bits):")
+    import array as _array
+
+    # 2 píxeles RGBA U8: (10,20,30,200) y (40,50,60,255)
+    u8 = bytes([10, 20, 30, 200, 40, 50, 60, 255])
+    got = maskops._scale_alpha(u8, bytes([255, 0]), 2, 1, 1)
+    ok &= check(
+        "U8: el alfa se multiplica y el color no se toca",
+        got == bytes([10, 20, 30, 200, 40, 50, 60, 0]),
+        f"{list(got)}",
+    )
+    ok &= check("U8: longitud idéntica", len(got) == len(u8))
+    ok &= check("U8: sin máscara (255) sale igual", maskops._scale_alpha(u8, b"\xff\xff", 2, 1, 1) == u8)
+
+    # Mismos dos píxeles en U16 con valores que no caben en 8 bits.
+    u16 = _array.array("H", [10, 20, 30, 60_000, 40, 50, 60, 32_768]).tobytes()
+    got16 = maskops._scale_alpha(u16, bytes([128, 255]), 2, 1, 2)
+    back = _array.array("H"); back.frombytes(got16)
+    esperado = [10, 20, 30, 60_000 * 128 // 255, 40, 50, 60, 32_768]
+    ok &= check(
+        "U16: alfa a escala, color intacto",
+        list(back) == esperado,
+        f"{list(back)} != {esperado}",
+    )
+    ok &= check("U16: longitud idéntica", len(got16) == len(u16))
+    ok &= check(
+        "U16 -> 8 bits coge el byte alto",
+        maskops._to_rgba8(_array.array("H", [0x1234, 0x2345, 0x3456, 0x4567]).tobytes(), 2)
+        == bytes([0x12, 0x23, 0x34, 0x45]),
+    )
+    try:
+        maskops._scale_alpha(u8, b"\xff", 2, 1, 1)
+        ok &= check("rechaza máscaras de tamaño imposible", False)
+    except ValueError:
+        ok &= check("rechaza máscaras de tamaño imposible", True)
+
     print("rendimiento (1344x1344 con mancha de ~200 px de diámetro):")
     w = h = 1344
     m = bytearray(w * h)
