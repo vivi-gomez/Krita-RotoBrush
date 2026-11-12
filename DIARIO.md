@@ -1112,3 +1112,35 @@ Comprobado que **no queda ningún sitio que desempaquete `source` a 3 campos**
 **No se ha podido lanzar Krita sin pantalla** para validar la carga del plugin:
 la AppImage solo trae el plugin de ventana `xcb`, el `offscreen` del sistema no
 lo acepta Qt y no hay Xvfb instalada. Queda la comprobación manual en Krita.
+
+### Feedback guardado de Eusebio (12-11 tarde): SAM 2.1 seleccionado pero se usa MobileSAM
+
+**Qué observó:** aunque el desplegable dice "SAM 2.1 (GPU)", el plugin parece no
+poder usarlo y acaba con MobileSAM; sin embargo las grabaciones/metadatos dicen
+que el primer plano lo creó SAM 2.1.
+
+**Causa (confirmada en el código):**
+- El desplegable del docker (`engine_combo`, docker.py:49) to `engine_kind`
+  (compute.py:38, "sam2" por defecto), pero eso **solo dice lo que se quiere
+  usar**.
+- En `_compute` (compute.py:125) solo se usa SAM 2.1 si `sam2_client.ping()`
+  acierta. El worker SAM 2.1 es un **proceso aparte** (TCP, puerto 8765): si no
+  está arrancado, se cerró el puerto o la GPU está ocupada, el ping falla y se
+  cae a MobileSAM (`_work`, motor Rust).
+- El aviso es transitorio ("SAM 2.1 no responde: uso MobileSAM", status.emit) y
+  fácil de no ver; no hay nada persistente que indique qué motor funcionó de
+  verdad.
+- **Incoherencia real:** `recorder.mask(self, pct, engine_kind)` (compute.py:206)
+  registra SIEMPRE `engine="sam2"` porque se pasa `engine_kind`, no el motor que
+  realmente corrió. Por eso las grabaciones afirman SAM 2.1 cuando la máscara la
+  fabricó MobileSAM.
+
+**Pendientes para los próximos arreglos:**
+1. Registrar el motor **real**: pasar un indicador desde cada ruta (p. ej.
+   `self.last_engine_used` fijado en `_work_sam2` vs `_work`) y grabar ese en
+   `recorder.mask`.
+2. Hacer visible y persistente el fallback: un rótulo/estado que diga qué motor
+   se usó en el último cálculo; que no se caiga en silencio.
+3. Avisar claro cuando el worker esté caído (sugerir "Arrancar motor SAM 2.1").
+4. Revisar si el default "SAM 2.1 (GPU)" confunde: mejor mantener la elección
+   pero cumplirla o avisar.
