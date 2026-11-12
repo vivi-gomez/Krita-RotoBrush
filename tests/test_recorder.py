@@ -129,7 +129,10 @@ def main() -> int:
     c = Controller(ROOT / "core" / "target" / "release" / "libroto_brush_core.so")
     c.recorder.begin(c)
     assert c.recorder.dir is not None, "recorder no comenzó (¿ROTO_BRUSH_RECORD?)"
-    c.source = ("fake-node", (0, 0, w, h), arr)
+    # Forma real de `source`: (id de capa, rect, rgba8 para el motor,
+    # rgba nativo de la capa). Si esto cambia, el recorder deja de escribir
+    # layer.bgra en silencio y la sesión no se puede reproducir.
+    c.source = ("fake-node", (0, 0, w, h), arr, arr)
     c.recorder.image(c)
 
     for pts in stroke_points(w, h):

@@ -4,6 +4,7 @@ Las usan compute.py y el arnés de pruebas; se manipulan como enteros
 grandes, así que unir, restar y dilatar cuestan milisegundos por mega.
 """
 
+import sys
 from math import isqrt
 
 
@@ -147,10 +148,17 @@ def _scale_alpha(orig: bytes, alpha: bytes, w: int, h: int, bpc: int = 1) -> byt
 def _to_rgba8(px: bytes, bpc: int) -> bytes:
     """Baja una capa RGBA de 16 bits a 8 bits tomando el byte alto de cada
     canal. Sirve para el MOTOR (SAM solo quiere ver la foto); para escribir en
-    la capa se usa _scale_alpha, que respeta los 16 bits."""
+    la capa se usa _scale_alpha, que respeta los 16 bits.
+
+    El byte alto va en la posición 1 en máquinas poco comunes (little-endian,
+    todas donde corre Krita hoy) y en la 0 en las otras; se elige por
+    `sys.byteorder` en vez de suponerlo."""
     if bpc == 1:
         return px
-    return px[bpc - 1::bpc]
+    if bpc != 2:
+        raise ValueError(f"profundidad desconocida: {bpc} bytes por canal")
+    alto = 1 if sys.byteorder == "little" else 0
+    return px[alto::bpc]
 
 
 def _dilate1(a: bytes, w: int) -> bytes:

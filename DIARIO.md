@@ -1056,3 +1056,46 @@ documento de 16 bits**.
 
 **Instalación.** `scripts/install.sh` limpia `__pycache__` y los `.py` viejos
 antes de copiar: la goma nueva existía en el repo pero nunca llegó a Krita.
+
+### Revisión de la v0.5 (12-11 tarde, tras el comentario de Eusebio)
+
+Revisado el diff de `v0.5-alpha-refine-local` entero, desinstalado y vuelto a
+instalar desde cero, y comprobado otra vez de arriba abajo. Cinco fallos
+propios corregidos:
+
+1. **La bandera antifantasmas atrapaba el lienzo.** Si la suelta del lápiz caía
+   fuera del área del lienzo, `_handle` salía antes de mirar la bandera y esta
+   se quedaba subida: **ningún trazo volvía a dibujar** hasta reabrir la
+   herramienta. Ahora el press solo se ignora si es de la familia *distinta* a
+   la que abrió el gesto (eco tableta↔ratón); el mismo tipo dos veces significa
+   que se perdió el final, así que se cierra el trazo anterior y se empieza uno
+   nuevo.
+2. **Los movimientos también venían doblados.** Cada `TabletMove` traía su eco
+   de ratón y `add_point` solo deduplica a 1,5 px de **imagen**, así que con el
+   lienzo alejado cada gesto guardaba el doble de puntos. El captor descarta el
+   punto si no se ha movido ≥1 px de **widget**.
+3. El press duplicado se **reenviaba a Krita**podía ponerse a pintar con la
+   herramienta activa. Ahora se consume.
+4. `_to_rgba8` suponía little-endian al coger el byte alto; se eligió por
+   `sys.byteorder`.
+5. `apply()` escribía con el `bpc` capturado aunque la capa hubiera cambiado de
+   8 a 16 bits por en medio: ahora pide recalcular en vez de corromper píxeles.
+
+**Prueba nueva: `tests/test_capture.py`** (15 comprobaciones, sin Krita). Mueve
+el captor con eventos de Qt de mentira y comprueba que un gesto de tableta con
+eco abre **un** trazo, lo cierra una vez y guarda 2 puntos en vez de 4; que
+soltar fuera no atrapa la bandera; y que `RB_SRC=~/.local/share/krita/pykrita/
+roto_brush` pasa la misma prueba a la **copia instalada**.
+
+**`tests/test_recorder.py` estaba obsoleto y tapaba el fallo:** construía
+`source` con 3 campos en vez de 4, la excepción la tragaba el `except` del
+recorder y `layer.bgra` no se escribía. Al arreglarlo, verde.
+
+**Desinstalador.** `scripts/uninstall.sh` (quitaba el plugin a mano no dejaba
+kritarc limpio). Probado de verdad: desinstalar → crítico de que no queda nada
+→ reinstalar → `diff -rq` instalado = repo.
+
+**Regresión medida.** Replay del yeti con SAM 2.1 en CPU tras la revisión:
+0,703 → **0,970** (verde bueno) → 0,941 (refine), idéntico a lo medido antes de
+tocar nada. Suite completa en verde (maskops, accumulate, recorder,
+import harness, capture).

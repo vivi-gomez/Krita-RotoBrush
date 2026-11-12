@@ -227,6 +227,12 @@ class ComputeOps:
             return
         x, y, w, h = rect
         bpc = getattr(self, "bpc", 1)
+        # Si la capa cambió de profundidad entre el cálculo y el Aplicar
+        # (8 → 16 bits), escribir con el paso viejo corrompería los píxeles.
+        if (2 if node.colorDepth() == "U16" else 1) != bpc:
+            self.status.emit(f"la capa pasó a {node.colorDepth()}: recalcula")
+            log.error(f"profundidad {node.colorDepth()} no coincide con {bpc} bytes/canal capturados")
+            return
         out = _scale_alpha(orig, bytes(alpha), w, h, bpc)
         self._snapshot()
         try:

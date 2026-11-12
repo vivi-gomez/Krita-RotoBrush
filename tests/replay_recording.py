@@ -179,9 +179,13 @@ def main() -> int:
         # Cada prefijo (1, 1+2, 1+2+3…) pasa por accumulate.accumulate, la
         # MISMA función del plugin: si aquí sube y en Krita baja, el problema
         # no es del criterio de acumulación.
-        acc_bytes, calls = accumulate.accumulate(
-            local[:i], w, h, lambda pts: sam2_client.segment(raw, w, h, pts)
-        )
+        try:
+            acc_bytes, calls = accumulate.accumulate(
+                local[:i], w, h, lambda pts: sam2_client.segment(raw, w, h, pts)
+            )
+        except ValueError as e:
+            print(f"{i:>6} {kinds.get(local[i - 1][0], '?'):>7}   —  {e}")
+            continue
         acc = np.frombuffer(acc_bytes, dtype=np.uint8) > 127
         fg = acc.mean() * 100.0
         iou = float("nan")

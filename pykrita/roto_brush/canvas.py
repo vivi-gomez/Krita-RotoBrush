@@ -177,6 +177,8 @@ class Capture(QObject):
         # fantasma de 1 punto antes del bueno, y ese punto solo bastaba para
         # que el segmento se quedara a medias (sesión 9).
         self._stroke_open = False
+        self._stroke_tablet = False  # qué familia abrió el trazo en curso
+        self._last_pos = None        # última posición aceptada (anti-eco)
 
     def start(self) -> bool:
         self.target = find_canvas_widget(self.c.window)
@@ -193,6 +195,7 @@ class Capture(QObject):
     def stop(self) -> None:
         self.active = False
         self._stroke_open = False
+        self._last_pos = None
         try:
             if self.target is not None:
                 self.target.setMouseTracking(getattr(self, "_prev_tracking", False))
@@ -267,21 +270,44 @@ class Capture(QObject):
         img = widget_to_image(self.c.view, pos, size)
         t = ev.type()
         if t in PRESS or t in TABLET_PRESS:
-            if self._stroke_open:
-                return False  # eco de tableta/ratón del mismo gesto
+            tablet = t in TABLET_PRESS
+            if self._stroke_open and tablet != self._stroke_tablet:
+                return True  # eco de tableta/ratón del mismo gesto
             if not self._left_or_tablet(ev, t):
                 return False
             if not self.c.tool_is_neutral():
                 return False
+            if self._stroke_open:
+                # El MISMO tipo otra vez sin una suelta por en medio: el final
+                # del gesto anterior se perdió (p. ej. soltaste fuera del
+                # lienzo). Cerramos el trazo anterior y empezamos uno nuevo;
+                # si lo ignoráramos, la bandera quedaría atrapada y ningún
+                # trazo volvería a dibujar.
+                self.c.end_stroke()
             self._stroke_open = True
+            self._stroke_tablet = tablet
+            self._last_pos = pos
             self.c.set_hover(pos)
             self.c.begin_stroke(img)
             return True
         if t in MOVE or t in TABLET_MOVE:
+            if not self._stroke_open:
+                return False  # no empezamos este gesto: no debe escribir puntos
             if not self.c.tool_is_neutral():
                 return False
             self.c.set_hover(pos)
             if self._drawing(ev):
+                # Con tableta cada movimiento también llega duplicado (eco de
+                # ratón con las coordenadas redondeadas). Guardar los dos
+                # duplica la lista de puntos del trazo sin aportar nada.
+                last = self._last_pos
+                if (
+                    last is not None
+                    and abs(pos.x() - last.x()) < 1.0
+                    and abs(pos.y() - last.y()) < 1.0
+                ):
+                    return True
+                self._last_pos = pos
                 self.c.add_point(img)
                 return True
             return False
